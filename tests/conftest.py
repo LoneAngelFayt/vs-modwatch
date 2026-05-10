@@ -11,3 +11,4 @@ def db():
     yield session
     session.close()
     Base.metadata.drop_all(engine)
+    engine.dispose()

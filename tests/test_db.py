@@ -20,6 +20,7 @@ def test_mod_version_cascade_delete(db):
 
 def test_get_set_setting(db):
     set_setting(db, "discord_webhook_url", "https://discord.com/api/webhooks/123/abc")
+    db.commit()
     assert get_setting(db, "discord_webhook_url") == "https://discord.com/api/webhooks/123/abc"
 
 def test_get_setting_default(db):

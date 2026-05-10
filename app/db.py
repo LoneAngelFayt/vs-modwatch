@@ -66,7 +66,6 @@ def set_setting(db: Session, key: str, value: str | None) -> None:
         row.value = value
     else:
         db.add(Setting(key=key, value=value))
-    db.commit()
 
 
 def init_db() -> None:
