@@ -1,6 +1,9 @@
 services:
   modwatch:
-    build: .
+    # Option A: pull pre-built image from GHCR (recommended for homelab)
+    image: ghcr.io/loneangelFayt/vs-modwatch:latest
+    # Option B: build locally from source (comment out image above, uncomment below)
+    # build: .
     ports:
       - "8000:8000"
     environment:

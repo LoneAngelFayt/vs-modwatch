@@ -4,13 +4,34 @@ Self-hosted Vintage Story mod update tracker. Add mod pages from [mods.vintagest
 
 ## Quick Start
 
+### Using the pre-built image (recommended)
+
+```bash
+mkdir modwatch && cd modwatch
+curl -O https://raw.githubusercontent.com/LoneAngelFayt/vs-modwatch/main/docker-compose.yml
+mkdir data
+docker compose up -d
+```
+
+### Building from source
+
 ```bash
 git clone https://github.com/LoneAngelFayt/vs-modwatch
 cd vs-modwatch
+# In docker-compose.yml: comment out the image line, uncomment build: .
 docker compose up -d
 ```
 
 Open `http://localhost:8000`.
+
+## Container Image
+
+Pre-built multi-arch images (amd64 + arm64) are published to GHCR on every push to main:
+
+```
+ghcr.io/loneangelFayt/vs-modwatch:latest
+ghcr.io/loneangelFayt/vs-modwatch:<git-sha>
+```
 
 ## Configuration
 
