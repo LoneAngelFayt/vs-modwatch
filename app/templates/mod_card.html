@@ -1,0 +1,43 @@
+{% set mod = item.mod %}
+{% set compat = item.compat %}
+<div id="mod-{{ mod.id }}"
+     style="background:#1a1d27; border:1px solid #2d3148; border-radius:8px; padding:1rem; position:relative;">
+  {% if mod.has_unread_update %}
+    <span class="badge badge-compatible" style="position:absolute;top:.75rem;right:.75rem;">NEW</span>
+  {% endif %}
+  <div style="margin-bottom:.5rem;">
+    <a href="{{ mod.url }}" target="_blank"
+       style="font-weight:600; color:#e2e8f0; text-decoration:none; font-size:1rem;">
+      {{ mod.name or mod.url }}
+    </a>
+  </div>
+  <div style="display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.75rem;">
+    {% if mod.side %}<span class="badge badge-{{ mod.side }}">{{ mod.side }}</span>{% endif %}
+    <span class="badge badge-{{ compat.state }}">
+      {{ compat.state }}{% if compat.note %}: {{ compat.note }}{% endif %}
+    </span>
+  </div>
+  <div style="font-size:.8rem; color:#94a3b8; display:grid; gap:.2rem;">
+    <span>Version: <strong style="color:#e2e8f0;">{{ mod.current_version or "—" }}</strong></span>
+    <span>VS: <strong style="color:#e2e8f0;">{{ mod.vs_version or "—" }}</strong></span>
+    <span>Updated: {{ mod.last_updated.strftime("%Y-%m-%d") if mod.last_updated else "—" }}</span>
+    <span>Checked: {{ mod.last_checked.strftime("%Y-%m-%d %H:%M") if mod.last_checked else "never" }}</span>
+  </div>
+  <div style="display:flex; gap:.5rem; margin-top:.75rem;">
+    <button class="btn btn-ghost"
+            hx-get="/mods/{{ mod.id }}/history"
+            hx-target="#history-{{ mod.id }}"
+            hx-swap="innerHTML toggle">History</button>
+    <button class="btn btn-ghost"
+            hx-post="/mods/{{ mod.id }}/refresh"
+            hx-target="#refresh-{{ mod.id }}"
+            hx-swap="innerHTML">Refresh</button>
+    <button class="btn btn-danger"
+            hx-delete="/mods/{{ mod.id }}"
+            hx-target="#mod-{{ mod.id }}"
+            hx-swap="outerHTML"
+            hx-confirm="Remove {{ mod.name or 'this mod' }} from tracking?">Remove</button>
+  </div>
+  <span id="refresh-{{ mod.id }}"></span>
+  <div id="history-{{ mod.id }}" style="margin-top:.5rem;"></div>
+</div>

@@ -1,0 +1,22 @@
+<table style="width:100%; font-size:.8rem; border-collapse:collapse; margin-top:.5rem;">
+  <thead>
+    <tr style="color:#94a3b8; text-align:left; border-bottom:1px solid #2d3148;">
+      <th style="padding:.3rem .5rem;">Version</th>
+      <th style="padding:.3rem .5rem;">VS Compat</th>
+      <th style="padding:.3rem .5rem;">Released</th>
+      <th style="padding:.3rem .5rem;">Detected</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for v in versions %}
+    <tr style="border-bottom:1px solid #1a1d27;">
+      <td style="padding:.3rem .5rem;">{{ v.version }}</td>
+      <td style="padding:.3rem .5rem;">{{ v.vs_version or "—" }}</td>
+      <td style="padding:.3rem .5rem;">{{ v.released_at.strftime("%Y-%m-%d") if v.released_at else "—" }}</td>
+      <td style="padding:.3rem .5rem;">{{ v.detected_at.strftime("%Y-%m-%d") }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" style="padding:.5rem; color:#94a3b8;">No version history yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>

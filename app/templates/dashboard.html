@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex; gap:1rem; align-items:flex-end; margin-bottom:1.5rem; flex-wrap:wrap;">
+  <form hx-post="/mods" hx-target="#mod-grid" hx-swap="afterbegin"
+        style="display:flex; gap:.5rem; flex:1; min-width:300px;">
+    <input type="url" name="url" placeholder="https://mods.vintagestory.at/modname"
+           style="flex:1; padding:.5rem; border-radius:4px; border:1px solid #2d3148; background:#1a1d27; color:#e2e8f0;" required>
+    <button type="submit" class="btn btn-primary">Track Mod</button>
+  </form>
+  <div style="display:flex; gap:.5rem; align-items:center;">
+    <label style="color:#94a3b8; font-size:.875rem;">Target VS version:</label>
+    <select name="target"
+            hx-get="/" hx-target="#mod-grid" hx-swap="innerHTML" hx-trigger="change"
+            style="padding:.4rem; border-radius:4px; border:1px solid #2d3148; background:#1a1d27; color:#e2e8f0;">
+      {% for v in vs_versions %}
+        <option value="{{ v.version }}" {% if v.version == target %}selected{% endif %}>
+          {{ v.version }}{% if v.is_latest %} (latest){% endif %}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+<div id="mod-grid" style="display:grid; gap:1rem; grid-template-columns:repeat(auto-fill,minmax(340px,1fr));">
+  {% include "mod_cards_partial.html" %}
+</div>
+{% endblock %}
