@@ -21,6 +21,8 @@ Open `http://localhost:8000`.
 | `APPRISE_URL` | — | Apprise notification URL |
 | `SCRAPE_INTERVAL_HOURS` | `6` | How often to check all mods |
 
+> **Note:** Changes to `SCRAPE_INTERVAL_HOURS` via the Settings UI take effect after restarting the container. All other settings (webhook URLs) take effect immediately.
+
 Set these in `docker-compose.yml` under `environment:` or as host env vars.
 
 ## Storage

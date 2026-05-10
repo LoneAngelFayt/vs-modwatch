@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from packaging.version import Version as PkgVersion
 from sqlalchemy.orm import Session
 from app.db import SessionLocal, init_db, Mod, ModVersion, VSVersion, get_setting, set_setting
-from app.scheduler import create_scheduler, run_scrape_all
+from app.scheduler import create_scheduler, run_scrape_all, run_scrape_one
 from app.versions import is_compatible
 
 templates = Jinja2Templates(directory="app/templates")
@@ -106,7 +106,7 @@ async def delete_mod(mod_id: int, db: DB):
 async def refresh_mod(mod_id: int, db: DB):
     if not db.get(Mod, mod_id):
         raise HTTPException(status_code=404)
-    asyncio.create_task(run_scrape_all(SessionLocal))
+    asyncio.create_task(run_scrape_one(SessionLocal, mod_id))
     return HTMLResponse("<span style='color:#94a3b8;font-size:.8rem;'>Refreshing…</span>")
 
 

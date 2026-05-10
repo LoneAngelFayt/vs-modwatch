@@ -21,7 +21,7 @@ async def send_discord(
             ],
         }]
     }
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.post(webhook_url, json=payload)
         resp.raise_for_status()
 
