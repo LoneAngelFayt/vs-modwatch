@@ -51,10 +51,13 @@ def _parse_date(raw: str) -> Optional[datetime]:
 
 
 def _parse_game_versions(td) -> str:
-    """Extract joined game version string from a release row's game-version cell."""
+    """Extract game version string from a release row's game-version cell.
+
+    When multiple tags are present, only the first is used — joined strings
+    like '1.21.5 and 1.21.6' cannot be parsed by app.versions.is_compatible().
+    """
     tags = td.select(".tags .tag")
-    parts = [t.get_text(strip=True) for t in tags]
-    return " and ".join(parts) if parts else ""
+    return tags[0].get_text(strip=True) if tags else ""
 
 
 def parse_mod_page(html: str) -> ModPageData:

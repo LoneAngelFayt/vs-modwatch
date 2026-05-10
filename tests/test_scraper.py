@@ -54,3 +54,20 @@ def test_parse_vs_version_list_sorted_desc(vs_html):
 
 def test_parse_vs_version_list_contains_known(vs_html):
     assert "1.21.6" in parse_vs_version_list(vs_html)
+
+def test_parse_multi_tag_uses_first(mod_html):
+    # Build a minimal page with a release that has two game version tags
+    html = """<html><body>
+    <div class="edit-asset"><h2><span>breadcrumb</span><span>Test Mod</span></h2></div>
+    <dl class="infobox"><dt>Side:</dt><dd>Client and Server</dd></dl>
+    <table class="release-table"><tbody>
+      <tr data-assetid="1">
+        <td>v2.0.0</td><td></td>
+        <td><div class="tags"><span class="tag">1.21.5</span><span class="tag">1.21.6</span></div></td>
+        <td></td><td><span>Nov 9th 2025 at 12:02 PM</span></td>
+      </tr>
+    </tbody></table>
+    </body></html>"""
+    data = parse_mod_page(html)
+    assert data.vs_version == "1.21.5"
+    assert " and " not in data.vs_version
