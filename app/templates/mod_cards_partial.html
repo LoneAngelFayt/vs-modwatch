@@ -1,0 +1,6 @@
+{% for item in mod_data %}
+  {% include "mod_card.html" %}
+{% endfor %}
+{% if not mod_data %}
+  <p style="color:#94a3b8; grid-column:1/-1;">No mods tracked yet. Paste a mod URL above to get started.</p>
+{% endif %}

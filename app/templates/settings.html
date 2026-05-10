@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 style="margin-top:0;">Settings</h2>
+<p style="color:#94a3b8; font-size:.875rem;">Environment variables take precedence and disable the corresponding field.</p>
+<form method="post" action="/settings" style="max-width:520px; display:grid; gap:1.25rem;">
+  <div>
+    <label style="display:block; margin-bottom:.3rem; font-size:.875rem; color:#94a3b8;">Discord Webhook URL</label>
+    <input type="url" name="discord_webhook_url" value="{{ discord_webhook_url or '' }}"
+           {% if discord_from_env %}disabled{% endif %}
+           placeholder="https://discord.com/api/webhooks/..."
+           style="width:100%; padding:.5rem; border-radius:4px; border:1px solid #2d3148; background:#1a1d27; color:#e2e8f0;">
+    {% if discord_from_env %}<small style="color:#94a3b8;">Set via DISCORD_WEBHOOK_URL env var.</small>{% endif %}
+  </div>
+  <div>
+    <label style="display:block; margin-bottom:.3rem; font-size:.875rem; color:#94a3b8;">Apprise URL</label>
+    <input type="text" name="apprise_url" value="{{ apprise_url or '' }}"
+           {% if apprise_from_env %}disabled{% endif %}
+           placeholder="ntfy://topic or slack://token/channel"
+           style="width:100%; padding:.5rem; border-radius:4px; border:1px solid #2d3148; background:#1a1d27; color:#e2e8f0;">
+    {% if apprise_from_env %}<small style="color:#94a3b8;">Set via APPRISE_URL env var.</small>{% endif %}
+    <small style="color:#64748b;">
+      Supports Ntfy, Gotify, Slack, email, and
+      <a href="https://github.com/caronc/apprise/wiki" target="_blank" style="color:#3b82f6;">80+ services</a>.
+    </small>
+  </div>
+  <div>
+    <label style="display:block; margin-bottom:.3rem; font-size:.875rem; color:#94a3b8;">Scrape Interval (hours)</label>
+    <input type="number" name="scrape_interval_hours" min="1" max="168"
+           value="{{ scrape_interval_hours or '6' }}"
+           {% if interval_from_env %}disabled{% endif %}
+           style="width:120px; padding:.5rem; border-radius:4px; border:1px solid #2d3148; background:#1a1d27; color:#e2e8f0;">
+    {% if interval_from_env %}<small style="color:#94a3b8;">Set via SCRAPE_INTERVAL_HOURS env var.</small>{% endif %}
+  </div>
+  <div><button type="submit" class="btn btn-primary">Save Settings</button></div>
+</form>
+{% endblock %}
