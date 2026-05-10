@@ -1,0 +1,18 @@
+services:
+  modwatch:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:////app/data/mods.db
+      # - DISCORD_WEBHOOK_URL=
+      # - APPRISE_URL=
+      # - SCRAPE_INTERVAL_HOURS=6
+    volumes:
+      - ./data:/app/data
+      # Named volume alternative (comment out bind mount above, uncomment below):
+      # - modwatch_data:/app/data
+    restart: unless-stopped
+
+# volumes:
+#   modwatch_data:
