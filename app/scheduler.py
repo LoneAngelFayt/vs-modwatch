@@ -2,7 +2,6 @@ import os
 import logging
 from datetime import datetime, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -17,16 +16,17 @@ async def run_scrape_all(session_factory) -> None:
         try:
             vs_versions = await fetch_vs_versions()
             existing = {v.version for v in db.query(VSVersion).all()}
-            db.query(VSVersion).update({"is_latest": False})
-            for v in vs_versions:
-                if v not in existing:
-                    db.add(VSVersion(version=v))
             if vs_versions:
+                db.query(VSVersion).update({"is_latest": False})
+                for v in vs_versions:
+                    if v not in existing:
+                        db.add(VSVersion(version=v))
                 latest = db.query(VSVersion).filter_by(version=vs_versions[0]).first()
                 if latest:
                     latest.is_latest = True
-            db.commit()
+                db.commit()
         except Exception:
+            db.rollback()
             logger.exception("Failed to refresh VS version list")
 
         discord_url = os.getenv("DISCORD_WEBHOOK_URL") or get_setting(db, "discord_webhook_url")
@@ -61,6 +61,7 @@ async def run_scrape_all(session_factory) -> None:
                 mod.last_checked = now
                 db.commit()
             except Exception:
+                db.rollback()
                 logger.exception("Failed to scrape mod %s", mod.url)
     finally:
         db.close()
