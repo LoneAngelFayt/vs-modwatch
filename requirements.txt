@@ -9,4 +9,3 @@ apprise==1.8.0
 packaging==24.0
 pytest==8.2.0
 pytest-asyncio==0.23.6
-requests==2.32.2
