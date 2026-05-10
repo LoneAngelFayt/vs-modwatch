@@ -1,9 +1,11 @@
+import asyncio
 import os
 from contextlib import asynccontextmanager
 from typing import Annotated
 from fastapi import FastAPI, Depends, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from packaging.version import Version as PkgVersion
 from sqlalchemy.orm import Session
 from app.db import SessionLocal, init_db, Mod, ModVersion, VSVersion, get_setting, set_setting
 from app.scheduler import create_scheduler, run_scrape_all
@@ -50,15 +52,17 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, db: DB, target: str = ""):
-    vs_versions = db.query(VSVersion).order_by(VSVersion.version.desc()).all()
+    vs_versions_raw = db.query(VSVersion).all()
+    vs_versions = sorted(vs_versions_raw, key=lambda v: PkgVersion(v.version), reverse=True)
     if not target:
         latest = next((v for v in vs_versions if v.is_latest), None)
         target = latest.version if latest else (vs_versions[0].version if vs_versions else "")
 
     mods = db.query(Mod).order_by(Mod.added_at.desc()).all()
-    for mod in mods:
-        mod.has_unread_update = False
-    db.commit()
+    if not request.headers.get("HX-Request"):
+        for mod in mods:
+            mod.has_unread_update = False
+        db.commit()
 
     mod_data = [{"mod": mod, "compat": _compat_state(mod, target, db)} for mod in mods]
 
@@ -82,7 +86,6 @@ async def add_mod(request: Request, db: DB, url: str = Form(...)):
     mod = Mod(url=url)
     db.add(mod)
     db.commit()
-    import asyncio
     asyncio.create_task(run_scrape_all(SessionLocal))
     return templates.TemplateResponse(request, "mod_card.html", {
         "item": {"mod": mod, "compat": {"state": "unknown", "note": ""}},
@@ -103,7 +106,6 @@ async def delete_mod(mod_id: int, db: DB):
 async def refresh_mod(mod_id: int, db: DB):
     if not db.get(Mod, mod_id):
         raise HTTPException(status_code=404)
-    import asyncio
     asyncio.create_task(run_scrape_all(SessionLocal))
     return HTMLResponse("<span style='color:#94a3b8;font-size:.8rem;'>Refreshing…</span>")
 
