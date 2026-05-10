@@ -10,6 +10,8 @@ def _normalize(v: str) -> Version:
 
 
 def is_compatible(vs_version_str: str, target: str) -> bool:
+    if not vs_version_str or not vs_version_str.strip():
+        return False
     s = vs_version_str.strip()
 
     m = re.match(r"^>=\s*(\d+\.\d+(?:\.\d+)?)$", s)

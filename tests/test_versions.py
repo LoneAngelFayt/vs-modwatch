@@ -40,3 +40,9 @@ def test_parse_vs_versions_sorted_desc():
 def test_parse_vs_versions_deduplicates():
     result = parse_vs_versions(["1.21.6", "1.21.6", "1.19.0"])
     assert len(result) == 2
+
+def test_empty_vs_version_returns_false():
+    assert is_compatible("", "1.21.6") is False
+
+def test_whitespace_vs_version_returns_false():
+    assert is_compatible("   ", "1.21.6") is False
