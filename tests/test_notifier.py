@@ -24,18 +24,29 @@ async def test_send_discord_posts_embed():
         mock_client.post.assert_called_once()
         payload = mock_client.post.call_args.kwargs.get("json", {})
         assert "embeds" in payload
+        embed = payload["embeds"][0]
+        assert "Purposeful Storage" in embed["title"]
+        assert "v1.3.2" in embed["title"]
+        assert embed["url"] == "https://mods.vintagestory.at/purposefulstorage"
+        field_names = [f["name"] for f in embed["fields"]]
+        assert "Version" in field_names
+        assert "VS Compatibility" in field_names
+        assert "Side" in field_names
 
 @pytest.mark.asyncio
 async def test_send_apprise_calls_notify():
     with patch("app.notifier.apprise_lib.Apprise") as mock_cls:
         mock_ap = MagicMock()
-        mock_ap.async_notify = AsyncMock()
+        mock_ap.async_notify = AsyncMock(return_value=True)
         mock_cls.return_value = mock_ap
 
         await send_apprise(apprise_url="ntfy://mytopic", **KWARGS)
 
         mock_ap.add.assert_called_once_with("ntfy://mytopic")
         mock_ap.async_notify.assert_called_once()
+        call_kwargs = mock_ap.async_notify.call_args.kwargs
+        assert "Purposeful Storage" in call_kwargs.get("title", "")
+        assert "ntfy://mytopic" in call_kwargs.get("title", "") or ">=1.19" in call_kwargs.get("body", "")
 
 @pytest.mark.asyncio
 async def test_notify_skips_when_not_configured():

@@ -1,5 +1,8 @@
+import logging
 import httpx
 import apprise as apprise_lib
+
+logger = logging.getLogger(__name__)
 
 
 async def send_discord(
@@ -29,10 +32,12 @@ async def send_apprise(
 ) -> None:
     ap = apprise_lib.Apprise()
     ap.add(apprise_url)
-    await ap.async_notify(
+    ok = await ap.async_notify(
         title=f"{mod_name} updated to {new_version}",
         body=f"VS compatibility: {vs_version} | Side: {side}\n{mod_url}",
     )
+    if not ok:
+        logger.warning("Apprise notification failed for %s", mod_url)
 
 
 async def notify(
@@ -42,6 +47,12 @@ async def notify(
     kwargs = dict(mod_name=mod_name, new_version=new_version,
                   vs_version=vs_version, side=side, mod_url=mod_url)
     if discord_url:
-        await send_discord(webhook_url=discord_url, **kwargs)
+        try:
+            await send_discord(webhook_url=discord_url, **kwargs)
+        except Exception:
+            logger.exception("Discord notification failed for %s", mod_url)
     if apprise_url:
-        await send_apprise(apprise_url=apprise_url, **kwargs)
+        try:
+            await send_apprise(apprise_url=apprise_url, **kwargs)
+        except Exception:
+            logger.exception("Apprise notification failed for %s", mod_url)
