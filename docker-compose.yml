@@ -1,7 +1,7 @@
 services:
   modwatch:
     # Option A: pull pre-built image from GHCR (recommended for homelab)
-    image: ghcr.io/loneangelFayt/vs-modwatch:latest
+    image: ghcr.io/loneangelfayt/vs-modwatch:latest
     # Option B: build locally from source (comment out image above, uncomment below)
     # build: .
     ports:
