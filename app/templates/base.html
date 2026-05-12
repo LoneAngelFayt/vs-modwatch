@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ModWatch</title>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { font-family: system-ui, sans-serif; margin: 0; background: #0f1117; color: #e2e8f0; }
@@ -26,6 +27,35 @@
     .btn-primary { background: #3b82f6; color: #fff; }
     .btn-danger { background: #ef4444; color: #fff; }
     .btn-ghost { background: transparent; color: #94a3b8; border: 1px solid #2d3148; }
+    .badge-installed   { background: #1e3a5f; color: #93c5fd; }
+    .badge-warn        { background: #3b2f0f; color: #fbbf24; }
+    .badge-stale       { background: #3b1f1f; color: #f87171; }
+    .btn-download { background: #0f4c75; color: #7dd3fc; border: 1px solid #1e6a9a44; }
+    .btn-download:hover:not(:disabled) { background: #1a6fa8; }
+    .btn-download:disabled { opacity: .35; cursor: not-allowed; }
+    .dl-wrap { position: relative; display: inline-flex; }
+    .dl-tip { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #1e2535; border: 1px solid #3b82f640; border-radius: 6px; padding: .4rem .7rem; font-size: .73rem; color: #e2e8f0; white-space: nowrap; pointer-events: none; z-index: 9999; box-shadow: 0 4px 12px #00000060; }
+    .dl-tip .dl-fn { font-family: monospace; color: #7dd3fc; font-size: .76rem; display: block; margin-bottom: .1rem; }
+    .dl-tip .dl-meta { color: #64748b; font-size: .7rem; }
+    .dl-wrap:hover .dl-tip { display: block; }
+    .cd-wrap { position: relative; }
+    .cd-trigger { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: .28rem .5rem; border-radius: 5px; border: 1px solid #2d3148; background: #1a1d27; color: #94a3b8; font-size: .75rem; cursor: pointer; user-select: none; gap: .4rem; }
+    .cd-trigger:hover, .cd-trigger.open { border-color: #3b82f6; }
+    .cd-trigger.has-filter { border-color: #3b82f6; color: #60a5fa; }
+    .cd-arrow { font-size: .6rem; opacity: .6; transition: transform .15s; }
+    .cd-trigger.open .cd-arrow { transform: rotate(180deg); }
+    .cd-panel { display: none; position: absolute; top: calc(100% + 3px); left: 0; min-width: 170px; background: #1a1d27; border: 1px solid #3b82f640; border-radius: 7px; padding: .35rem 0; z-index: 100; box-shadow: 0 8px 24px #00000080; }
+    .cd-panel.open { display: block; }
+    .cd-option { display: flex; align-items: center; gap: .5rem; padding: .32rem .7rem; cursor: pointer; font-size: .78rem; color: #94a3b8; }
+    .cd-option:hover { background: #252a3d; color: #e2e8f0; }
+    .cd-option input[type=checkbox] { width: 14px; height: 14px; accent-color: #3b82f6; cursor: pointer; flex-shrink: 0; }
+    .cd-divider { height: 1px; background: #2d3148; margin: .25rem 0; }
+    .cd-actions { display: flex; gap: .5rem; padding: .25rem .7rem; }
+    .cd-action { font-size: .7rem; color: #3b82f6; cursor: pointer; }
+    .cd-action:hover { text-decoration: underline; }
+    .filter-text { width: 100%; padding: .28rem .5rem; border-radius: 5px; border: 1px solid #2d3148; background: #1a1d27; color: #e2e8f0; font-size: .75rem; outline: none; }
+    .filter-text:focus { border-color: #3b82f6; }
+    .filter-text::placeholder { color: #475569; }
   </style>
 </head>
 <body>
