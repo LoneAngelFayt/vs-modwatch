@@ -1,5 +1,6 @@
 import asyncio
 import os
+import re as _re
 from contextlib import asynccontextmanager
 from typing import Annotated
 from fastapi import FastAPI, Depends, Request, Form, HTTPException
@@ -123,13 +124,29 @@ async def refresh_mod(mod_id: int, db: DB):
 
 
 @app.post("/mods/{mod_id}/toggle-server", response_class=HTMLResponse)
-async def toggle_server(mod_id: int, request: Request, db: DB, target: str = ""):
+async def toggle_server(mod_id: int, request: Request, db: DB, target: str = "", view: str = "list"):
     mod = db.get(Mod, mod_id)
     if not mod:
         raise HTTPException(status_code=404)
     mod.on_server = not mod.on_server
     db.commit()
-    return HTMLResponse(f"<span id='server-toggled-{mod_id}'></span>", status_code=200)
+
+    vs_versions_raw = db.query(VSVersion).all()
+    vs_versions = sorted(vs_versions_raw, key=lambda v: PkgVersion(v.version), reverse=True)
+    if not target:
+        latest = next((v for v in vs_versions if v.is_latest), None)
+        target = latest.version if latest else (vs_versions[0].version if vs_versions else "")
+
+    allow_outdated_dl = get_setting(db, "allow_outdated_downloads", "false").lower() == "true"
+    item = {"mod": mod, "compat": _compat_state(mod, target, db)}
+
+    template_name = "mod_card.html" if view == "cards" else "list_row.html"
+    return templates.TemplateResponse(template_name, {
+        "request": request,
+        "item": item,
+        "target": target,
+        "allow_outdated_dl": allow_outdated_dl,
+    })
 
 
 @app.patch("/mods/order")
@@ -265,10 +282,13 @@ async def save_settings(
         set_setting(db, "discord_webhook_url", discord_webhook_url or None)
     if not os.getenv("APPRISE_URL"):
         set_setting(db, "apprise_url", apprise_url or None)
+    color_val = discord_embed_color.strip()
+    if not _re.match(r'^#[0-9a-fA-F]{6}$', color_val):
+        color_val = "#3498DB"
     for key, val in [
         ("discord_embed_title", discord_embed_title),
         ("discord_embed_description", discord_embed_description),
-        ("discord_embed_color", discord_embed_color),
+        ("discord_embed_color", color_val),
         ("discord_field_version_enabled", "true" if discord_field_version_enabled == "on" else "false"),
         ("discord_field_version_label", discord_field_version_label),
         ("discord_field_version_value", discord_field_version_value),

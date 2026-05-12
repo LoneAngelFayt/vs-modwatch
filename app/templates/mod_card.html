@@ -13,7 +13,7 @@
     <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer;font-size:.8rem;color:#94a3b8;white-space:nowrap;">
       <input type="checkbox" {% if mod.on_server %}checked{% endif %}
              style="width:15px;height:15px;accent-color:#3b82f6;cursor:pointer;"
-             hx-post="/mods/{{ mod.id }}/toggle-server{% if target %}?target={{ target }}{% endif %}"
+             hx-post="/mods/{{ mod.id }}/toggle-server{% if target %}?target={{ target }}{% endif %}&view=cards"
              hx-target="#mod-{{ mod.id }}" hx-swap="outerHTML"> On Server
     </label>
   </div>
@@ -51,7 +51,7 @@
       <button class="btn btn-download" disabled>⬇ Download</button>
       {% endif %}
       <div class="dl-tip">
-        <span class="dl-fn">{{ mod.current_version or "—" }}</span>
+        <span class="dl-fn">{{ mod.filename or mod.current_version or "—" }}</span>
         <span class="dl-meta">{% if not dl_enabled %}Enable "Allow downloading outdated mods" in Settings{% elif not mod.download_url %}No file available{% elif state in ('warn', 'stale') %}May not work on VS {{ target }}{% else %}Compatible with VS {{ target }}{% endif %}</span>
       </div>
     </div>

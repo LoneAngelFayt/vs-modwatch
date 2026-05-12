@@ -29,6 +29,7 @@ class Mod(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     download_url: Mapped[str | None] = mapped_column(String, nullable=True)
     file_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    filename: Mapped[str | None] = mapped_column(String, nullable=True)
     versions: Mapped[list["ModVersion"]] = relationship(
         "ModVersion", back_populates="mod", cascade="all, delete-orphan"
     )
@@ -107,6 +108,7 @@ def upgrade_db() -> None:
             "sort_order": "INTEGER DEFAULT 0",
             "download_url": "TEXT",
             "file_size": "INTEGER",
+            "filename": "TEXT",
         }
         for col, typedef in new_cols.items():
             if col not in existing:

@@ -64,6 +64,7 @@ async def _update_mod(db, mod, data, discord_url, apprise_url, discord_settings,
     if data.version_history:
         mod.download_url = data.version_history[0].get("download_url")
         mod.file_size = data.version_history[0].get("file_size")
+        mod.filename = data.version_history[0].get("filename")
     db.commit()
 
 

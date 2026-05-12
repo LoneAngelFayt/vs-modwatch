@@ -15,7 +15,10 @@ def substitute_vars(template: str, ctx: dict) -> str:
 
 
 def _hex_to_int(hex_str: str) -> int:
-    return int(hex_str.lstrip("#"), 16)
+    try:
+        return int(hex_str.lstrip("#"), 16)
+    except (ValueError, AttributeError):
+        return 0x3498DB  # default blue
 
 
 def build_discord_payload(settings: dict, ctx: dict) -> dict:
