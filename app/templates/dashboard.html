@@ -36,7 +36,7 @@
 {% if view == 'list' %}
   {% include "list_view.html" %}
 {% else %}
-  <div id="mod-grid" style="display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));">
+  <div id="mod-grid" style="display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(340px,420px));">
     {% include "mod_cards_partial.html" %}
   </div>
 {% endif %}

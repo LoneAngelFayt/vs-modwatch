@@ -26,7 +26,7 @@
     {% elif state == 'stale' %}<span class="badge badge-stale">✕ Outdated{% if compat.note %}: {{ compat.note }}{% endif %}</span>
     {% endif %}
   </div>
-  <div style="font-size:.77rem;color:#64748b;display:grid;grid-template-columns:1fr 1fr;gap:.2rem .75rem;">
+  <div style="font-size:.77rem;color:#64748b;display:grid;grid-template-columns:max-content max-content;gap:.2rem 1.5rem;">
     <span><strong style="color:#94a3b8;">Version</strong> {{ mod.current_version or "—" }}</span>
     <span><strong style="color:#94a3b8;">VS</strong> {{ mod.vs_version or "—" }}</span>
     <span><strong style="color:#94a3b8;">Updated</strong> {{ mod.last_updated.strftime("%Y-%m-%d") if mod.last_updated else "—" }}</span>
