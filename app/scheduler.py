@@ -1,17 +1,16 @@
 import os
 import logging
+from datetime import datetime, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from app.db import DEFAULT_SETTINGS
+from app.db import DEFAULT_SETTINGS, ModVersion
+from app.notifier import notify
+from app.versions import compat_level
 
 logger = logging.getLogger(__name__)
 
 
 async def _update_mod(db, mod, data, discord_url, apprise_url, discord_settings, notify_when, latest_vs_version):
     """Update a single mod from scraped data. Handles initial seed and version changes."""
-    from app.db import ModVersion
-    from app.notifier import notify
-    from app.versions import compat_level
-    from datetime import datetime, timezone
 
     now = datetime.now(timezone.utc)
     existing_versions = {v.version for v in db.query(ModVersion).filter_by(mod_id=mod.id).all()}
