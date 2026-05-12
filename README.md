@@ -24,6 +24,17 @@ docker compose up -d
 
 Open `http://localhost:8000`.
 
+## Features
+
+- **List and Card views** — list is default; toggle between them with the view switcher in the toolbar
+- **Drag-to-reorder** — drag mods into your preferred order in either view; order is persisted
+- **On Server tracking** — mark mods as installed on your server; compatible + installed mods show a blue left border
+- **4-state compatibility** — Compatible (green), Potentially Outdated (yellow, patch version only differs), Outdated (red)
+- **Download button** — download the latest compatible version directly from the dashboard; tooltip shows filename and compatibility note
+- **Column filters** — list view has fuzzy search and multi-select checkbox dropdowns per column
+- **Configurable Discord embeds** — customise title, description, colour, fields, and add custom fields with live preview in Settings
+- **Notification control** — notify on every update or only when compatible with the latest VS version
+
 ## Container Image
 
 Pre-built multi-arch images (amd64 + arm64) are published to GHCR on every push to main:

@@ -1,0 +1,203 @@
+<div style="font-size:.74rem;color:#64748b;padding:.5rem 2rem .1rem;">
+  Showing <b id="visible-count">{{ mod_data|length }}</b> of {{ mod_data|length }} mods
+  <a onclick="clearAllFilters()" style="font-size:.71rem;color:#3b82f6;cursor:pointer;margin-left:.6rem;">Reset filters</a>
+</div>
+<div style="padding:.25rem 2rem 2rem;overflow-x:auto;">
+<table id="mod-list-table" style="width:100%;border-collapse:collapse;font-size:.82rem;">
+  <thead>
+    <tr>
+      <th style="width:26px;padding:0 .2rem;border-bottom:1px solid #2d3148;"></th>
+      <th class="sortable-th" onclick="sortList(1,this)" style="text-align:left;padding:.5rem .75rem;color:#64748b;font-weight:600;font-size:.71rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #2d3148;cursor:pointer;user-select:none;">Mod</th>
+      <th class="sortable-th" onclick="sortList(2,this)" style="text-align:left;padding:.5rem .75rem;color:#64748b;font-weight:600;font-size:.71rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #2d3148;cursor:pointer;user-select:none;">Side</th>
+      <th class="sortable-th" onclick="sortList(3,this)" style="text-align:left;padding:.5rem .75rem;color:#64748b;font-weight:600;font-size:.71rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #2d3148;cursor:pointer;user-select:none;">Version</th>
+      <th class="sortable-th" onclick="sortList(4,this)" style="text-align:left;padding:.5rem .75rem;color:#64748b;font-weight:600;font-size:.71rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #2d3148;cursor:pointer;user-select:none;">VS Compat</th>
+      <th class="sortable-th" onclick="sortList(5,this)" style="text-align:left;padding:.5rem .75rem;color:#64748b;font-weight:600;font-size:.71rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #2d3148;cursor:pointer;user-select:none;">Status</th>
+      <th class="sortable-th" onclick="sortList(6,this)" style="text-align:left;padding:.5rem .75rem;color:#64748b;font-weight:600;font-size:.71rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #2d3148;cursor:pointer;user-select:none;">Updated</th>
+      <th style="text-align:left;padding:.5rem .75rem;color:#64748b;font-weight:600;font-size:.71rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #2d3148;">On Server</th>
+      <th style="text-align:left;padding:.5rem .75rem;color:#64748b;font-weight:600;font-size:.71rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #2d3148;">Actions</th>
+    </tr>
+    <tr style="background:#0a0c14;">
+      <td style="padding:.3rem .2rem;border-bottom:2px solid #2d3148;"></td>
+      <td style="padding:.3rem .4rem;border-bottom:2px solid #2d3148;">
+        <input class="filter-text" id="f-name" type="text" placeholder="Search mod…" oninput="applyListFilters()">
+      </td>
+      <td style="padding:.3rem .4rem;border-bottom:2px solid #2d3148;">
+        <div class="cd-wrap">
+          <div class="cd-trigger" id="cd-side-t" onclick="toggleCd('side')"><span id="cd-side-l">All</span><span class="cd-arrow">▼</span></div>
+          <div class="cd-panel" id="cd-side-p">
+            <div class="cd-actions"><span class="cd-action" onclick="checkAllCd('side')">All</span><span class="cd-action" onclick="noneAllCd('side')">None</span></div>
+            <div class="cd-divider"></div>
+            <label class="cd-option"><input type="checkbox" checked data-g="side" value="client" onchange="applyListFilters()"><span>💻 Client Only</span></label>
+            <label class="cd-option"><input type="checkbox" checked data-g="side" value="server" onchange="applyListFilters()"><span>⚙ Server Only</span></label>
+            <label class="cd-option"><input type="checkbox" checked data-g="side" value="both" onchange="applyListFilters()"><span>🖥 Client + Server</span></label>
+          </div>
+        </div>
+      </td>
+      <td style="padding:.3rem .4rem;border-bottom:2px solid #2d3148;">
+        <input class="filter-text" id="f-ver" type="text" placeholder="Filter…" oninput="applyListFilters()">
+      </td>
+      <td style="padding:.3rem .4rem;border-bottom:2px solid #2d3148;">
+        <div class="cd-wrap">
+          <div class="cd-trigger" id="cd-vs-t" onclick="toggleCd('vs')"><span id="cd-vs-l">All</span><span class="cd-arrow">▼</span></div>
+          <div class="cd-panel" id="cd-vs-p">
+            <div class="cd-actions"><span class="cd-action" onclick="checkAllCd('vs')">All</span><span class="cd-action" onclick="noneAllCd('vs')">None</span></div>
+            <div class="cd-divider"></div>
+            <div id="cd-vs-options"></div>
+          </div>
+        </div>
+      </td>
+      <td style="padding:.3rem .4rem;border-bottom:2px solid #2d3148;">
+        <div class="cd-wrap">
+          <div class="cd-trigger" id="cd-status-t" onclick="toggleCd('status')"><span id="cd-status-l">All</span><span class="cd-arrow">▼</span></div>
+          <div class="cd-panel" id="cd-status-p">
+            <div class="cd-actions"><span class="cd-action" onclick="checkAllCd('status')">All</span><span class="cd-action" onclick="noneAllCd('status')">None</span></div>
+            <div class="cd-divider"></div>
+            <label class="cd-option"><input type="checkbox" checked data-g="status" value="installed" onchange="applyListFilters()"><span>✓ Compatible + On Server</span></label>
+            <label class="cd-option"><input type="checkbox" checked data-g="status" value="compatible" onchange="applyListFilters()"><span>✓ Compatible</span></label>
+            <label class="cd-option"><input type="checkbox" checked data-g="status" value="warn" onchange="applyListFilters()"><span>⚠ Potentially Outdated</span></label>
+            <label class="cd-option"><input type="checkbox" checked data-g="status" value="stale" onchange="applyListFilters()"><span>✕ Outdated</span></label>
+          </div>
+        </div>
+      </td>
+      <td style="padding:.3rem .4rem;border-bottom:2px solid #2d3148;">
+        <input class="filter-text" id="f-date" type="text" placeholder="e.g. 2026…" oninput="applyListFilters()">
+      </td>
+      <td style="padding:.3rem .4rem;border-bottom:2px solid #2d3148;">
+        <div class="cd-wrap">
+          <div class="cd-trigger" id="cd-server-t" onclick="toggleCd('server')"><span id="cd-server-l">All</span><span class="cd-arrow">▼</span></div>
+          <div class="cd-panel" id="cd-server-p">
+            <div class="cd-actions"><span class="cd-action" onclick="checkAllCd('server')">All</span><span class="cd-action" onclick="noneAllCd('server')">None</span></div>
+            <div class="cd-divider"></div>
+            <label class="cd-option"><input type="checkbox" checked data-g="server" value="yes" onchange="applyListFilters()"><span>✔ On Server</span></label>
+            <label class="cd-option"><input type="checkbox" checked data-g="server" value="no" onchange="applyListFilters()"><span>👁 Watching only</span></label>
+          </div>
+        </div>
+      </td>
+      <td style="padding:.3rem .4rem;border-bottom:2px solid #2d3148;">
+        <button class="btn btn-ghost" style="font-size:.72rem;padding:.25rem .55rem;white-space:nowrap;"
+                hx-post="/mods/refresh-all" hx-swap="none">↺ All</button>
+      </td>
+    </tr>
+  </thead>
+  <tbody id="mod-list-body" data-target="{{ target }}">
+    {% for item in mod_data %}
+      {% set allow_outdated_dl = allow_outdated_dl %}
+      {% include "list_row.html" %}
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<script>
+document.addEventListener('click', e => {
+  if (!e.target.closest('.cd-wrap')) {
+    document.querySelectorAll('.cd-panel.open').forEach(p => {
+      p.classList.remove('open');
+      p.previousElementSibling?.classList.remove('open');
+    });
+  }
+});
+
+function toggleCd(g) {
+  const panel = document.getElementById(`cd-${g}-p`);
+  const trigger = document.getElementById(`cd-${g}-t`);
+  const wasOpen = panel.classList.contains('open');
+  document.querySelectorAll('.cd-panel.open').forEach(p => { p.classList.remove('open'); p.previousElementSibling?.classList.remove('open'); });
+  if (!wasOpen) { panel.classList.add('open'); trigger.classList.add('open'); }
+}
+
+function getChecked(g) { return new Set([...document.querySelectorAll(`input[data-g="${g}"]:checked`)].map(i => i.value)); }
+function getAll(g) { return new Set([...document.querySelectorAll(`input[data-g="${g}"]`)].map(i => i.value)); }
+function checkAllCd(g) { document.querySelectorAll(`input[data-g="${g}"]`).forEach(i => i.checked = true); applyListFilters(); }
+function noneAllCd(g) { document.querySelectorAll(`input[data-g="${g}"]`).forEach(i => i.checked = false); applyListFilters(); }
+
+function updateCdLabel(g) {
+  const all = getAll(g), checked = getChecked(g);
+  const label = document.getElementById(`cd-${g}-l`);
+  const trigger = document.getElementById(`cd-${g}-t`);
+  if (!label) return;
+  label.textContent = checked.size === all.size ? 'All' : checked.size === 0 ? 'None' : `${checked.size} of ${all.size}`;
+  trigger.classList.toggle('has-filter', checked.size !== all.size);
+}
+
+function fuzzyMatch(text, q) {
+  if (!q) return true;
+  text = text.toLowerCase(); q = q.toLowerCase();
+  let qi = 0;
+  for (const c of text) { if (c === q[qi]) qi++; if (qi === q.length) return true; }
+  return false;
+}
+
+function applyListFilters() {
+  ['side','vs','status','server'].forEach(updateCdLabel);
+  const name = document.getElementById('f-name')?.value || '';
+  const ver  = document.getElementById('f-ver')?.value.toLowerCase() || '';
+  const date = document.getElementById('f-date')?.value.toLowerCase() || '';
+  const side = getChecked('side'), vs = getChecked('vs'), status = getChecked('status'), server = getChecked('server');
+  let visible = 0;
+  document.querySelectorAll('#mod-list-body tr.mod-row').forEach(row => {
+    const rName = row.cells[1]?.innerText || '';
+    const rVer  = row.cells[3]?.innerText.toLowerCase() || '';
+    const rDate = row.cells[6]?.innerText.toLowerCase() || '';
+    const show = fuzzyMatch(rName, name) &&
+      (!ver || rVer.includes(ver)) && (!date || rDate.includes(date)) &&
+      side.has(row.dataset.side) && vs.has(row.dataset.vs) &&
+      status.has(row.dataset.status) && server.has(row.dataset.server);
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  const el = document.getElementById('visible-count');
+  if (el) el.textContent = visible;
+}
+
+function clearAllFilters() {
+  ['f-name','f-ver','f-date'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.querySelectorAll('.cd-option input[type=checkbox]').forEach(i => i.checked = true);
+  applyListFilters();
+}
+window.clearAllFilters = clearAllFilters;
+
+function populateVsOptions() {
+  const seen = new Set();
+  document.querySelectorAll('#mod-list-body tr.mod-row').forEach(row => { if (row.dataset.vs) seen.add(row.dataset.vs); });
+  const container = document.getElementById('cd-vs-options');
+  if (!container) return;
+  container.innerHTML = '';
+  [...seen].sort().forEach(vs => {
+    const label = document.createElement('label');
+    label.className = 'cd-option';
+    label.innerHTML = `<input type="checkbox" checked data-g="vs" value="${vs}" onchange="applyListFilters()"><span>${vs}</span>`;
+    container.appendChild(label);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  populateVsOptions();
+  applyListFilters();
+  const tbody = document.getElementById('mod-list-body');
+  if (tbody && typeof Sortable !== 'undefined') {
+    Sortable.create(tbody, {
+      handle: '.row-handle', animation: 150,
+      ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen',
+      onEnd() {
+        const ids = [...tbody.querySelectorAll('tr.mod-row')].map(r => parseInt(r.dataset.id));
+        fetch('/mods/order', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ids}) });
+      }
+    });
+  }
+});
+
+let _sortCol = -1, _sortDir = 1;
+function sortList(colIdx, th) {
+  const tbody = document.getElementById('mod-list-body');
+  if (!tbody) return;
+  const rows = [...tbody.querySelectorAll('tr.mod-row')];
+  document.querySelectorAll('.sortable-th').forEach(h => h.style.color = '#64748b');
+  _sortDir = (_sortCol === colIdx) ? _sortDir * -1 : 1;
+  _sortCol = colIdx;
+  rows.sort((a, b) => (a.cells[colIdx]?.innerText.trim() || '').localeCompare(b.cells[colIdx]?.innerText.trim() || '', undefined, {numeric: true}) * _sortDir);
+  rows.forEach(r => tbody.appendChild(r));
+  th.style.color = '#60a5fa';
+  applyListFilters();
+}
+</script>

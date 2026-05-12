@@ -1,0 +1,65 @@
+{% set mod = item.mod %}
+{% set compat = item.compat %}
+{% set state = compat.state %}
+<tr id="row-{{ mod.id }}" class="mod-row"
+    data-id="{{ mod.id }}"
+    data-status="{{ state }}"
+    data-side="{{ mod.side or '' }}"
+    data-server="{{ 'yes' if mod.on_server else 'no' }}"
+    data-vs="{{ mod.vs_version or '' }}">
+  <td style="width:26px;padding:0 .2rem;border-left:4px solid {% if state == 'installed' %}#3b82f6{% elif state == 'compatible' %}#22c55e{% elif state == 'warn' %}#f59e0b{% else %}#ef4444{% endif %};">
+    <span class="row-handle" style="color:#2d3148;cursor:grab;font-size:.9rem;display:block;padding:.4rem .2rem;">⠿</span>
+  </td>
+  <td>
+    <a href="{{ mod.url }}" target="_blank" style="color:#e2e8f0;text-decoration:none;font-weight:500;">{{ mod.name or mod.url }}</a>
+    {% if mod.has_unread_update %}<span class="badge badge-compatible" style="font-size:.65rem;margin-left:.35rem;">NEW</span>{% endif %}
+  </td>
+  <td>
+    {% if mod.side == 'client' %}<span class="badge badge-client">💻 Client Only</span>
+    {% elif mod.side == 'server' %}<span class="badge badge-server">⚙ Server Only</span>
+    {% elif mod.side == 'both' %}<span class="badge badge-both">🖥 Client + Server</span>
+    {% endif %}
+  </td>
+  <td>{{ mod.current_version or "—" }}</td>
+  <td>{{ mod.vs_version or "—" }}</td>
+  <td>
+    {% if state in ('installed', 'compatible') %}<span class="badge badge-compatible">✓ Compatible</span>
+    {% elif state == 'warn' %}<span class="badge badge-warn">⚠ Potentially Outdated</span>
+    {% elif state == 'stale' %}<span class="badge badge-stale">✕ Outdated</span>
+    {% else %}<span class="badge" style="background:#2d3148;color:#94a3b8;">Unknown</span>{% endif %}
+  </td>
+  <td style="color:#64748b;font-size:.82rem;">{{ mod.last_updated.strftime("%Y-%m-%d") if mod.last_updated else "—" }}</td>
+  <td>
+    <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer;">
+      <input type="checkbox" {% if mod.on_server %}checked{% endif %}
+             style="width:15px;height:15px;accent-color:#3b82f6;cursor:pointer;"
+             hx-post="/mods/{{ mod.id }}/toggle-server{% if target %}?target={{ target }}{% endif %}&view=list"
+             hx-target="#row-{{ mod.id }}"
+             hx-swap="outerHTML">
+    </label>
+  </td>
+  <td style="display:flex;gap:.3rem;align-items:center;">
+    <button class="btn btn-ghost" style="padding:.3rem .6rem;font-size:.78rem;"
+            hx-post="/mods/{{ mod.id }}/refresh"
+            hx-target="#row-{{ mod.id }}" hx-swap="outerHTML">↺</button>
+    {% set dl_enabled = state in ('installed', 'compatible', 'warn') or (state == 'stale' and allow_outdated_dl) %}
+    <div class="dl-wrap">
+      {% if dl_enabled and mod.download_url %}
+      <a href="/mods/{{ mod.id }}/download{% if target %}?target={{ target }}{% endif %}">
+        <button class="btn btn-download" style="padding:.3rem .6rem;font-size:.78rem;">⬇</button>
+      </a>
+      {% else %}
+      <button class="btn btn-download" disabled style="padding:.3rem .6rem;font-size:.78rem;">⬇</button>
+      {% endif %}
+      <div class="dl-tip">
+        <span class="dl-fn">{{ mod.filename or mod.current_version or "—" }}</span>
+        <span class="dl-meta">{% if not dl_enabled %}Enable "Allow downloading outdated mods" in Settings{% elif not mod.download_url %}No file available{% elif state in ('warn', 'stale') %}May not work on VS {{ target }}{% else %}Compatible with VS {{ target }}{% endif %}</span>
+      </div>
+    </div>
+    <button class="btn btn-danger" style="padding:.3rem .6rem;font-size:.78rem;"
+            hx-delete="/mods/{{ mod.id }}"
+            hx-target="#row-{{ mod.id }}"
+            hx-swap="outerHTML"
+            hx-confirm="Remove {{ mod.name or 'this mod' }} from tracking?">✕</button>
+  </td>
+</tr>

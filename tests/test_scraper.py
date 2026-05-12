@@ -55,6 +55,23 @@ def test_parse_vs_version_list_sorted_desc(vs_html):
 def test_parse_vs_version_list_contains_known(vs_html):
     assert "1.21.6" in parse_vs_version_list(vs_html)
 
+def test_parse_download_url(mod_html):
+    data = parse_mod_page(mod_html)
+    url = data.version_history[0]["download_url"]
+    assert url is not None
+    assert url.startswith("https://mods.vintagestory.at")
+    assert ".zip" in url
+
+def test_parse_filename(mod_html):
+    data = parse_mod_page(mod_html)
+    assert data.version_history[0]["filename"] is not None
+    assert data.version_history[0]["filename"].endswith(".zip")
+
+def test_parse_file_size_type(mod_html):
+    data = parse_mod_page(mod_html)
+    entry = data.version_history[0]
+    assert entry["file_size"] is None or isinstance(entry["file_size"], int)
+
 def test_parse_multi_tag_uses_first(mod_html):
     # Build a minimal page with a release that has two game version tags
     html = """<html><body>
@@ -71,3 +88,11 @@ def test_parse_multi_tag_uses_first(mod_html):
     data = parse_mod_page(html)
     assert data.vs_version == "1.21.5"
     assert " and " not in data.vs_version
+
+def test_parse_file_size_helper():
+    from app.scraper import _parse_file_size
+    assert _parse_file_size("1.8 MB") == int(1.8 * 1024**2)
+    assert _parse_file_size("512 KB") == 512 * 1024
+    assert _parse_file_size("2 GB") == 2 * 1024**3
+    assert _parse_file_size("unparseable") is None
+    assert _parse_file_size("") is None

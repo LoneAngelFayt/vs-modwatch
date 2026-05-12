@@ -25,3 +25,26 @@ def test_get_set_setting(db):
 
 def test_get_setting_default(db):
     assert get_setting(db, "nonexistent", "fallback") == "fallback"
+
+def test_mod_has_on_server(db):
+    mod = Mod(url="https://mods.vintagestory.at/test")
+    db.add(mod)
+    db.commit()
+    assert mod.on_server is False
+    assert mod.sort_order == 0
+    assert mod.download_url is None
+    assert mod.file_size is None
+
+def test_mod_version_has_download_fields(db):
+    mod = Mod(url="https://mods.vintagestory.at/test2")
+    db.add(mod)
+    db.flush()
+    v = ModVersion(
+        mod_id=mod.id, version="v1.0.0",
+        download_url="https://mods.vintagestory.at/dl/test_v1.0.0.zip",
+        file_size=1024000,
+        filename="test_v1.0.0.zip",
+    )
+    db.add(v)
+    db.commit()
+    assert db.query(ModVersion).filter_by(mod_id=mod.id).one().filename == "test_v1.0.0.zip"
