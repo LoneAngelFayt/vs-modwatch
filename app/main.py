@@ -84,16 +84,11 @@ def get_db():
 DB = Annotated[Session, Depends(get_db)]
 
 
-def _best_dev_release(mod_id: int, target: str, db: Session) -> ModVersion | None:
-    """Return the most recent tester/dev release compatible with target, or None.
-
-    Uses the stored is_tester flag (set by the scraper from the portal's 'For testers'
-    label) first, then falls back to version-string detection.
-    """
+def _best_dev_release_from_history(mod_id: int, target: str, history: list) -> ModVersion | None:
+    """Return the most recent tester/dev release compatible with target from a pre-loaded list."""
     if not target:
         return None
-    history = db.query(ModVersion).filter_by(mod_id=mod_id).order_by(ModVersion.detected_at.desc()).all()
-    for v in history:
+    for v in sorted(history, key=lambda v: v.detected_at, reverse=True):
         if not (v.is_tester or is_dev_version(v.version)):
             continue
         if v.vs_version and compat_level(v.vs_version, target) in ("compatible", "warn"):
@@ -101,22 +96,22 @@ def _best_dev_release(mod_id: int, target: str, db: Session) -> ModVersion | Non
     return None
 
 
-def _compat_state(mod: Mod, target: str, db: Session) -> dict:
+def _compat_state(mod: Mod, target: str, db: Session, history: list | None = None) -> dict:
     if not target or not mod.vs_version:
         return {"state": "unknown", "note": "", "dev": None}
     level = compat_level(mod.vs_version, target)
     if level == "compatible":
         state = "installed" if mod.on_server else "compatible"
         return {"state": state, "note": "", "dev": None}
-    # warn or stale — check history for a stable last-compatible note
-    history = db.query(ModVersion).filter_by(mod_id=mod.id).order_by(ModVersion.detected_at.desc()).all()
+    # Use pre-loaded history if provided, otherwise fetch (single-mod paths like mod_row)
+    if history is None:
+        history = db.query(ModVersion).filter_by(mod_id=mod.id).order_by(ModVersion.detected_at.desc()).all()
     note = ""
-    for v in history:
+    for v in sorted(history, key=lambda v: v.detected_at, reverse=True):
         if v.vs_version and not is_dev_version(v.version) and compat_level(v.vs_version, target) == "compatible":
             note = f"last compatible: {v.version}"
             break
-    # Check for a compatible dev/testing release
-    dev = _best_dev_release(mod.id, target, db)
+    dev = _best_dev_release_from_history(mod.id, target, history)
     return {"state": level, "note": note, "dev": dev}
 
 
@@ -154,7 +149,13 @@ async def dashboard(request: Request, db: DB, target: str = "", view: str = "lis
         db.commit()
 
     mods = db.query(Mod).order_by(Mod.sort_order.asc(), Mod.added_at.desc()).all()
-    mod_data = [{"mod": mod, "compat": _compat_state(mod, target, db)} for mod in mods]
+    # Pre-load all mod versions in one query to avoid N+1 on compat state calculation
+    mod_ids = [m.id for m in mods]
+    all_versions = db.query(ModVersion).filter(ModVersion.mod_id.in_(mod_ids)).all() if mod_ids else []
+    versions_by_mod: dict[int, list] = {}
+    for v in all_versions:
+        versions_by_mod.setdefault(v.mod_id, []).append(v)
+    mod_data = [{"mod": mod, "compat": _compat_state(mod, target, db, versions_by_mod.get(mod.id, []))} for mod in mods]
     allow_outdated_dl = get_setting(db, "allow_outdated_downloads", "false").lower() == "true"
 
     return templates.TemplateResponse("dashboard.html", {
@@ -215,7 +216,7 @@ async def refresh_mod(mod_id: int, request: Request, db: DB, target: str = "", v
         # Card view: placeholder div that reloads itself
         placeholder = (
             f'<div id="mod-{mod_id}" '
-            f'hx-get="{delay_url}" hx-trigger="load delay:4s" '
+            f'hx-get="{delay_url}" hx-trigger="load delay:2s" '
             f'hx-target="#mod-{mod_id}" hx-swap="outerHTML" '
             f'style="background:#1a1d27;border:1px solid #2d3148;border-radius:8px;'
             f'padding:1rem;color:#64748b;font-size:.8rem;">{spinner}</div>'
@@ -224,7 +225,7 @@ async def refresh_mod(mod_id: int, request: Request, db: DB, target: str = "", v
         # List view: placeholder tr that reloads itself
         placeholder = (
             f'<tr id="row-{mod_id}" '
-            f'hx-get="{delay_url}" hx-trigger="load delay:4s" '
+            f'hx-get="{delay_url}" hx-trigger="load delay:2s" '
             f'hx-target="#row-{mod_id}" hx-swap="outerHTML">'
             f'<td colspan="9" style="padding:.6rem .75rem;color:#64748b;font-size:.8rem;">{spinner}</td></tr>'
         )
