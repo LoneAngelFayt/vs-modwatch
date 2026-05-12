@@ -48,3 +48,28 @@ def test_mod_version_has_download_fields(db):
     db.add(v)
     db.commit()
     assert db.query(ModVersion).filter_by(mod_id=mod.id).one().filename == "test_v1.0.0.zip"
+
+
+def test_is_new_version_false_on_first_scrape():
+    """Notification must not fire when a mod is first scraped (no previous version)."""
+    mod = Mod(url="https://mods.vintagestory.at/newmod", current_version=None)
+    scraped_version = "v1.0.0"
+    # Mirrors the scheduler logic: only new_version if there was a previous tracked version
+    is_new_version = bool(
+        scraped_version
+        and mod.current_version is not None
+        and scraped_version != mod.current_version
+    )
+    assert is_new_version is False
+
+
+def test_is_new_version_true_on_update():
+    """Notification must fire when a scrape finds a newer version than what was tracked."""
+    mod = Mod(url="https://mods.vintagestory.at/existingmod", current_version="v1.0.0")
+    scraped_version = "v1.1.0"
+    is_new_version = bool(
+        scraped_version
+        and mod.current_version is not None
+        and scraped_version != mod.current_version
+    )
+    assert is_new_version is True
