@@ -1,6 +1,7 @@
 import os
 import logging
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from app.db import DEFAULT_SETTINGS
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +142,6 @@ async def run_scrape_all(session_factory) -> None:
             pass
 
         # Build discord_settings dict
-        from app.db import DEFAULT_SETTINGS
         discord_settings = {
             key: get_setting(db, key, DEFAULT_SETTINGS[key])
             for key in DEFAULT_SETTINGS

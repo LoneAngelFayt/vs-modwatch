@@ -151,8 +151,10 @@ async def toggle_server(mod_id: int, request: Request, db: DB, target: str = "",
 
 @app.patch("/mods/order")
 async def update_order(db: DB, payload: dict):
-    ids: list[int] = payload.get("ids", [])
+    ids = payload.get("ids", [])
     for position, mod_id in enumerate(ids):
+        if not isinstance(mod_id, int):
+            continue
         mod = db.get(Mod, mod_id)
         if mod:
             mod.sort_order = position
@@ -209,7 +211,7 @@ async def refresh_all(db: DB):
     return HTMLResponse("<span style='color:#94a3b8;font-size:.8rem;'>Refreshing all…</span>")
 
 
-@app.get("/settings/reset-discord-defaults", response_class=HTMLResponse)
+@app.post("/settings/reset-discord-defaults", response_class=HTMLResponse)
 async def reset_discord_defaults(db: DB):
     for key, val in DEFAULT_SETTINGS.items():
         if key.startswith("discord_"):
