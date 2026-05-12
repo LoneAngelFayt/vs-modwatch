@@ -105,3 +105,22 @@ def test_parse_vs_versions_skips_prerelease_gracefully():
     # Pre-release versions sort correctly after stripping suffix
     result = parse_vs_versions(["1.22.2", "1.22.0-pre.1", "1.21.6"])
     assert result[0] == "1.22.2"
+
+
+# is_dev_version
+from app.versions import is_dev_version
+
+def test_is_dev_version_dev():
+    assert is_dev_version("2.0.0-dev.13") is True
+
+def test_is_dev_version_rc():
+    assert is_dev_version("1.22.0-rc.5") is True
+
+def test_is_dev_version_alpha():
+    assert is_dev_version("1.0.0-alpha.1") is True
+
+def test_is_dev_version_stable():
+    assert is_dev_version("1.2.5") is False
+
+def test_is_dev_version_stable_with_numbers():
+    assert is_dev_version("2.0.0") is False

@@ -25,6 +25,7 @@
     {% elif state == 'warn' %}<span class="badge badge-warn">⚠ Potentially Outdated{% if compat.note %}: {{ compat.note }}{% endif %}</span>
     {% elif state == 'stale' %}<span class="badge badge-stale">✕ Outdated{% if compat.note %}: {{ compat.note }}{% endif %}</span>
     {% endif %}
+    {% if compat.dev %}<span class="badge" style="background:#1e2d4a;color:#67e8f9;">🔬 Dev {{ compat.dev.version }}</span>{% endif %}
   </div>
   <div style="font-size:.77rem;color:#64748b;display:grid;grid-template-columns:max-content max-content;gap:.2rem 1.5rem;">
     <span><strong style="color:#94a3b8;">Version</strong> {{ mod.current_version or "—" }}</span>
@@ -55,6 +56,17 @@
         <span class="dl-meta">{% if not dl_enabled %}Enable "Allow downloading outdated mods" in Settings{% elif not mod.download_url %}No file available{% elif state in ('warn', 'stale') %}May not work on VS {{ target }}{% else %}Compatible with VS {{ target }}{% endif %}</span>
       </div>
     </div>
+    {% if compat.dev and compat.dev.download_url %}
+    <div class="dl-wrap">
+      <a href="{{ compat.dev.download_url }}" target="_blank">
+        <button class="btn btn-download" style="background:#0f3a4a;color:#67e8f9;border-color:#1e4a5a44;">🔬 Dev</button>
+      </a>
+      <div class="dl-tip">
+        <span class="dl-fn">{{ compat.dev.filename or compat.dev.version }}</span>
+        <span class="dl-meta">Dev build · may not work on VS {{ target }}</span>
+      </div>
+    </div>
+    {% endif %}
     <button class="btn btn-danger"
             hx-delete="/mods/{{ mod.id }}"
             hx-target="#mod-{{ mod.id }}"

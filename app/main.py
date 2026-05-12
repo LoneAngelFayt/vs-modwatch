@@ -15,7 +15,7 @@ from packaging.version import Version as PkgVersion
 from sqlalchemy.orm import Session
 from app.db import SessionLocal, init_db, Mod, ModVersion, VSVersion, get_setting, set_setting, seed_default_settings, DEFAULT_SETTINGS
 from app.scheduler import create_scheduler, run_scrape_all, run_scrape_one
-from app.versions import is_compatible, compat_level
+from app.versions import is_compatible, compat_level, is_dev_version
 from app.notifier import build_discord_payload, send_discord
 
 import json as _json
@@ -84,19 +84,36 @@ def get_db():
 DB = Annotated[Session, Depends(get_db)]
 
 
+def _best_dev_release(mod_id: int, target: str, db: Session) -> ModVersion | None:
+    """Return the most recent dev/testing release compatible with target, or None."""
+    if not target:
+        return None
+    history = db.query(ModVersion).filter_by(mod_id=mod_id).order_by(ModVersion.detected_at.desc()).all()
+    for v in history:
+        if not is_dev_version(v.version):
+            continue
+        if v.vs_version and compat_level(v.vs_version, target) in ("compatible", "warn"):
+            return v
+    return None
+
+
 def _compat_state(mod: Mod, target: str, db: Session) -> dict:
     if not target or not mod.vs_version:
-        return {"state": "unknown", "note": ""}
+        return {"state": "unknown", "note": "", "dev": None}
     level = compat_level(mod.vs_version, target)
     if level == "compatible":
         state = "installed" if mod.on_server else "compatible"
-        return {"state": state, "note": ""}
-    # warn or stale — check history for note
+        return {"state": state, "note": "", "dev": None}
+    # warn or stale — check history for a stable last-compatible note
     history = db.query(ModVersion).filter_by(mod_id=mod.id).order_by(ModVersion.detected_at.desc()).all()
+    note = ""
     for v in history:
-        if v.vs_version and compat_level(v.vs_version, target) == "compatible":
-            return {"state": level, "note": f"last compatible: {v.version}"}
-    return {"state": level, "note": ""}
+        if v.vs_version and not is_dev_version(v.version) and compat_level(v.vs_version, target) == "compatible":
+            note = f"last compatible: {v.version}"
+            break
+    # Check for a compatible dev/testing release
+    dev = _best_dev_release(mod.id, target, db)
+    return {"state": level, "note": note, "dev": dev}
 
 
 @asynccontextmanager
