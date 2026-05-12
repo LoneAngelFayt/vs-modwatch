@@ -190,9 +190,14 @@
       </form>
     </div>
 
-    <div style="display:flex;gap:.6rem;">
-      <button type="submit" class="btn btn-primary">Save Settings</button>
+    <div style="display:flex;gap:.6rem;align-items:center;">
+      <button type="submit" class="btn btn-primary"
+              hx-post="/settings"
+              hx-include="closest form"
+              hx-target="#save-result"
+              hx-swap="innerHTML">Save Settings</button>
       <a href="/" class="btn btn-ghost" style="text-decoration:none;">Cancel</a>
+      <span id="save-result" style="font-size:.85rem;"></span>
     </div>
 
   </form>
@@ -272,5 +277,16 @@ function saveCustomFields() {
 
 loadCustomFields();
 updatePreview();
+
+// Fade out the ✓ Saved indicator after 3 seconds
+document.body.addEventListener('settingsSaved', () => {
+  const el = document.getElementById('save-result');
+  if (!el) return;
+  setTimeout(() => {
+    el.style.transition = 'opacity .5s';
+    el.style.opacity = '0';
+    setTimeout(() => { el.textContent = ''; el.style.opacity = '1'; }, 500);
+  }, 3000);
+});
 </script>
 {% endblock %}

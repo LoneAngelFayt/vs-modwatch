@@ -369,4 +369,9 @@ async def save_settings(
     ]:
         set_setting(db, key, val)
     db.commit()
+    if request.headers.get("HX-Request"):
+        return HTMLResponse(
+            '<span style="color:#86efac;">✓ Saved</span>',
+            headers={"HX-Trigger": "settingsSaved"},
+        )
     return RedirectResponse("/settings", status_code=303)
