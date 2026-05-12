@@ -85,8 +85,15 @@ def test_compat_level_range_with_prerelease_lo_boundary():
 def test_compat_level_range_with_prerelease_hi_boundary():
     assert compat_level("1.22.0-pre.1 - 1.22.2", "1.22.2") == "compatible"
 
+def test_compat_level_range_patch_above_hi_is_warn():
+    # Target is one patch above upper bound — same major.minor, so potentially still works
+    assert compat_level("1.22.0-pre.1 - 1.22.1", "1.22.2") == "warn"
+
+def test_compat_level_range_minor_above_hi_is_stale():
+    assert compat_level("1.22.0-pre.1 - 1.22.2", "1.23.0") == "stale"
+
 def test_compat_level_range_with_prerelease_above():
-    assert compat_level("1.22.0-pre.1 - 1.22.2", "1.22.3") == "stale"
+    assert compat_level("1.22.0-pre.1 - 1.22.2", "1.22.3") == "warn"
 
 def test_compat_level_range_with_prerelease_below():
     assert compat_level("1.22.0-pre.1 - 1.22.2", "1.21.6") == "stale"

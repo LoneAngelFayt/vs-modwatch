@@ -49,9 +49,10 @@ def parse_vs_versions(raw: list[str]) -> list[str]:
 def compat_level(vs_version_str: str, target: str) -> str:
     """Return 'compatible', 'warn', or 'stale' for a mod vs a target VS version.
 
-    warn  = exact single version, patch only differs (likely still works)
-    stale = exact single version, minor or major differs (probably broken)
-    Explicit >= and range expressions are evaluated strictly — compatible or stale, no warn path.
+    warn  = patch only differs from the relevant version boundary (likely still works)
+    stale = minor or major differs (probably broken)
+    For ranges, warn is returned when the target is one patch above the upper bound.
+    >= expressions are strictly compatible or stale.
     """
     if not vs_version_str or not vs_version_str.strip():
         return "stale"
@@ -63,11 +64,18 @@ def compat_level(vs_version_str: str, target: str) -> str:
     if m:
         return "compatible" if _normalize(target) >= _normalize(m.group(1)) else "stale"
 
-    # Range expression — strictly compatible or stale
+    # Range expression
     m = re.match(r"^(\d+\.\d+(?:\.\d+)?(?:-\S+)?)\s+-\s+(\d+\.\d+(?:\.\d+)?(?:-\S+)?)$", s)
     if m:
-        in_range = _normalize(m.group(1)) <= _normalize(target) <= _normalize(m.group(2))
-        return "compatible" if in_range else "stale"
+        lo = _normalize(m.group(1))
+        hi = _normalize(m.group(2))
+        tgt = _normalize(target)
+        if lo <= tgt <= hi:
+            return "compatible"
+        # Target is only a patch version above the upper bound — may still work
+        if tgt > hi and tgt.major == hi.major and tgt.minor == hi.minor:
+            return "warn"
+        return "stale"
 
     # Exact single version
     try:
