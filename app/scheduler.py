@@ -94,6 +94,22 @@ async def run_scrape_one(session_factory, mod_id: int) -> None:
         apprise_url = os.getenv("APPRISE_URL") or get_setting(db, "apprise_url")
         notify_when = get_setting(db, "notify_when", "always")
 
+        # Populate VS version list if the table is empty (e.g. fresh database)
+        if not db.query(VSVersion).first():
+            try:
+                vs_versions = await fetch_vs_versions()
+                if vs_versions:
+                    db.query(VSVersion).update({"is_latest": False})
+                    for v in vs_versions:
+                        if not db.query(VSVersion).filter_by(version=v).first():
+                            db.add(VSVersion(version=v))
+                    latest_row = db.query(VSVersion).filter_by(version=vs_versions[0]).first()
+                    if latest_row:
+                        latest_row.is_latest = True
+                    db.commit()
+            except Exception:
+                logger.exception("Failed to populate VS version list")
+
         latest_vs_version = ""
         try:
             latest = db.query(VSVersion).filter_by(is_latest=True).first()
