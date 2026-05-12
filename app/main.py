@@ -10,9 +10,23 @@ from packaging.version import Version as PkgVersion
 from sqlalchemy.orm import Session
 from app.db import SessionLocal, init_db, Mod, ModVersion, VSVersion, get_setting, set_setting, seed_default_settings, DEFAULT_SETTINGS
 from app.scheduler import create_scheduler, run_scrape_all, run_scrape_one
-from app.versions import is_compatible
+from app.versions import is_compatible, compat_level
+from app.notifier import build_discord_payload, send_discord
+
+import json as _json
 
 templates = Jinja2Templates(directory="app/templates")
+
+
+def _validate_json_array(raw: str) -> str:
+    """Return raw if it is a valid JSON array, otherwise return '[]'."""
+    try:
+        parsed = _json.loads(raw)
+        if isinstance(parsed, list):
+            return raw
+    except (ValueError, TypeError):
+        pass
+    return "[]"
 
 
 def get_db():
@@ -27,7 +41,6 @@ DB = Annotated[Session, Depends(get_db)]
 
 
 def _compat_state(mod: Mod, target: str, db: Session) -> dict:
-    from app.versions import compat_level
     if not target or not mod.vs_version:
         return {"state": "unknown", "note": ""}
     level = compat_level(mod.vs_version, target)
@@ -48,6 +61,7 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         seed_default_settings(db)
+        db.commit()
     finally:
         db.close()
     interval = int(os.getenv("SCRAPE_INTERVAL_HOURS", "6"))
@@ -164,7 +178,6 @@ async def update_order(db: DB, payload: dict):
 
 @app.get("/mods/{mod_id}/download")
 async def download_mod(mod_id: int, db: DB, target: str = ""):
-    from app.versions import compat_level
     mod = db.get(Mod, mod_id)
     if not mod:
         raise HTTPException(status_code=404)
@@ -197,7 +210,6 @@ async def test_discord(db: DB):
         "latest_vs_version": "1.21.6", "compatible_with_latest": "Yes",
     }
     try:
-        from app.notifier import build_discord_payload, send_discord
         payload = build_discord_payload(discord_settings, ctx)
         await send_discord(discord_url, payload)
         return {"ok": True, "message": "Test notification sent"}
@@ -303,7 +315,7 @@ async def save_settings(
         ("discord_field_compat_enabled", "true" if discord_field_compat_enabled == "on" else "false"),
         ("discord_field_compat_label", discord_field_compat_label),
         ("discord_field_compat_value", discord_field_compat_value),
-        ("discord_custom_fields", discord_custom_fields),
+        ("discord_custom_fields", _validate_json_array(discord_custom_fields)),
     ]:
         set_setting(db, key, val)
     db.commit()

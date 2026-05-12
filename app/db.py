@@ -127,11 +127,10 @@ def upgrade_db() -> None:
 
 
 def seed_default_settings(db: Session) -> None:
-    """Insert default settings that don't yet exist."""
+    """Insert default settings that don't yet exist. Caller is responsible for commit."""
     for key, value in DEFAULT_SETTINGS.items():
         if not db.get(Setting, key):
             db.add(Setting(key=key, value=value))
-    db.commit()
 
 
 def init_db() -> None:
