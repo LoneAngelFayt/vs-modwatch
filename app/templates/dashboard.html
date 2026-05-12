@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 <div style="display:flex;gap:1rem;align-items:flex-end;margin-bottom:1.25rem;flex-wrap:wrap;">
-  <form hx-post="/mods" hx-target="#mod-grid" hx-swap="afterbegin"
+  <form method="post" action="/mods"
+        hx-post="/mods" hx-target="#mod-grid" hx-swap="afterbegin"
         style="display:flex;gap:.5rem;flex:1;min-width:300px;">
     <input type="url" name="url" placeholder="https://mods.vintagestory.at/modname"
            style="flex:1;padding:.5rem;border-radius:4px;border:1px solid #2d3148;background:#1a1d27;color:#e2e8f0;" required>

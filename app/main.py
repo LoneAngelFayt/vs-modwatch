@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 from fastapi import FastAPI, Depends, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from packaging.version import Version as PkgVersion
 from sqlalchemy.orm import Session
@@ -72,6 +73,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -106,14 +108,21 @@ async def dashboard(request: Request, db: DB, target: str = "", view: str = "lis
 @app.post("/mods", response_class=HTMLResponse)
 async def add_mod(request: Request, db: DB, url: str = Form(...)):
     url = url.strip()
+    is_htmx = bool(request.headers.get("HX-Request"))
     if not url.startswith("https://mods.vintagestory.at/"):
+        if not is_htmx:
+            return RedirectResponse("/?error=invalid_url", status_code=303)
         return HTMLResponse("<p class='error'>URL must be from mods.vintagestory.at</p>", status_code=422)
     if db.query(Mod).filter_by(url=url).first():
+        if not is_htmx:
+            return RedirectResponse("/", status_code=303)
         return HTMLResponse("<p class='error'>Mod is already being tracked</p>", status_code=200)
     mod = Mod(url=url)
     db.add(mod)
     db.commit()
     asyncio.create_task(run_scrape_all(SessionLocal))
+    if not is_htmx:
+        return RedirectResponse("/", status_code=303)
     return templates.TemplateResponse(request, "mod_card.html", {
         "item": {"mod": mod, "compat": {"state": "unknown", "note": ""}},
     })
