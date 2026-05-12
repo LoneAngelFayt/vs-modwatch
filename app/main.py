@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from packaging.version import Version as PkgVersion
 from sqlalchemy.orm import Session
-from app.db import SessionLocal, init_db, Mod, ModVersion, VSVersion, get_setting, set_setting
+from app.db import SessionLocal, init_db, Mod, ModVersion, VSVersion, get_setting, set_setting, seed_default_settings, DEFAULT_SETTINGS
 from app.scheduler import create_scheduler, run_scrape_all, run_scrape_one
 from app.versions import is_compatible
 
@@ -26,20 +26,29 @@ DB = Annotated[Session, Depends(get_db)]
 
 
 def _compat_state(mod: Mod, target: str, db: Session) -> dict:
+    from app.versions import compat_level
     if not target or not mod.vs_version:
         return {"state": "unknown", "note": ""}
-    if is_compatible(mod.vs_version, target):
-        return {"state": "compatible", "note": ""}
+    level = compat_level(mod.vs_version, target)
+    if level == "compatible":
+        state = "installed" if mod.on_server else "compatible"
+        return {"state": state, "note": ""}
+    # warn or stale — check history for note
     history = db.query(ModVersion).filter_by(mod_id=mod.id).order_by(ModVersion.detected_at.desc()).all()
     for v in history:
-        if v.vs_version and is_compatible(v.vs_version, target):
-            return {"state": "outdated", "note": f"last compatible: {v.version}"}
-    return {"state": "incompatible", "note": ""}
+        if v.vs_version and compat_level(v.vs_version, target) == "compatible":
+            return {"state": level, "note": f"last compatible: {v.version}"}
+    return {"state": level, "note": ""}
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    db = SessionLocal()
+    try:
+        seed_default_settings(db)
+    finally:
+        db.close()
     interval = int(os.getenv("SCRAPE_INTERVAL_HOURS", "6"))
     scheduler = create_scheduler(SessionLocal, interval_hours=interval)
     scheduler.start()
@@ -51,28 +60,31 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request, db: DB, target: str = ""):
+async def dashboard(request: Request, db: DB, target: str = "", view: str = "list"):
     vs_versions_raw = db.query(VSVersion).all()
     vs_versions = sorted(vs_versions_raw, key=lambda v: PkgVersion(v.version), reverse=True)
     if not target:
         latest = next((v for v in vs_versions if v.is_latest), None)
         target = latest.version if latest else (vs_versions[0].version if vs_versions else "")
 
-    mods = db.query(Mod).order_by(Mod.added_at.desc()).all()
     if not request.headers.get("HX-Request"):
-        for mod in mods:
+        for mod in db.query(Mod).all():
             mod.has_unread_update = False
         db.commit()
 
+    mods = db.query(Mod).order_by(Mod.sort_order.asc(), Mod.added_at.desc()).all()
     mod_data = [{"mod": mod, "compat": _compat_state(mod, target, db)} for mod in mods]
+    allow_outdated_dl = get_setting(db, "allow_outdated_downloads", "false").lower() == "true"
 
     if request.headers.get("HX-Request"):
-        return templates.TemplateResponse(request, "mod_cards_partial.html", {
-            "mod_data": mod_data,
+        return templates.TemplateResponse("mod_cards_partial.html", {
+            "request": request, "mod_data": mod_data, "target": target,
+            "allow_outdated_dl": allow_outdated_dl,
         })
-    return templates.TemplateResponse(request, "dashboard.html", {
-        "mod_data": mod_data,
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request, "mod_data": mod_data,
         "vs_versions": vs_versions, "target": target,
+        "view": view, "allow_outdated_dl": allow_outdated_dl,
     })
 
 
@@ -108,6 +120,85 @@ async def refresh_mod(mod_id: int, db: DB):
         raise HTTPException(status_code=404)
     asyncio.create_task(run_scrape_one(SessionLocal, mod_id))
     return HTMLResponse("<span style='color:#94a3b8;font-size:.8rem;'>Refreshing…</span>")
+
+
+@app.post("/mods/{mod_id}/toggle-server", response_class=HTMLResponse)
+async def toggle_server(mod_id: int, request: Request, db: DB, target: str = ""):
+    mod = db.get(Mod, mod_id)
+    if not mod:
+        raise HTTPException(status_code=404)
+    mod.on_server = not mod.on_server
+    db.commit()
+    return HTMLResponse(f"<span id='server-toggled-{mod_id}'></span>", status_code=200)
+
+
+@app.patch("/mods/order")
+async def update_order(db: DB, payload: dict):
+    ids: list[int] = payload.get("ids", [])
+    for position, mod_id in enumerate(ids):
+        mod = db.get(Mod, mod_id)
+        if mod:
+            mod.sort_order = position
+    db.commit()
+    return {"ok": True}
+
+
+@app.get("/mods/{mod_id}/download")
+async def download_mod(mod_id: int, db: DB, target: str = ""):
+    from app.versions import compat_level
+    mod = db.get(Mod, mod_id)
+    if not mod:
+        raise HTTPException(status_code=404)
+    versions = db.query(ModVersion).filter_by(mod_id=mod_id).order_by(ModVersion.detected_at.desc()).all()
+    best = None
+    for v in versions:
+        if not v.download_url:
+            continue
+        if not target or (v.vs_version and compat_level(v.vs_version, target) in ("compatible", "warn")):
+            best = v
+            break
+    if not best:
+        best = next((v for v in versions if v.download_url), None)
+    if not best or not best.download_url:
+        raise HTTPException(status_code=404, detail="No download available")
+    return RedirectResponse(best.download_url, status_code=302)
+
+
+@app.post("/settings/test-discord")
+async def test_discord(db: DB):
+    discord_url = os.getenv("DISCORD_WEBHOOK_URL") or get_setting(db, "discord_webhook_url")
+    if not discord_url:
+        raise HTTPException(status_code=400, detail="No Discord webhook URL configured")
+    discord_settings = {k: get_setting(db, k, DEFAULT_SETTINGS[k]) for k in DEFAULT_SETTINGS if k.startswith("discord_")}
+    ctx = {
+        "mod_name": "Example Mod", "new_version": "v2.0.0", "old_version": "v1.9.0",
+        "vs_version": ">=1.19", "side": "Client and Server",
+        "mod_url": "https://mods.vintagestory.at/examplemod",
+        "filename": "examplemod_v2.0.0.zip", "file_size": "2.4 MB",
+        "latest_vs_version": "1.21.6", "compatible_with_latest": "Yes",
+    }
+    try:
+        from app.notifier import build_discord_payload, send_discord
+        payload = build_discord_payload(discord_settings, ctx)
+        await send_discord(discord_url, payload)
+        return {"ok": True, "message": "Test notification sent"}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@app.post("/mods/refresh-all", response_class=HTMLResponse)
+async def refresh_all(db: DB):
+    asyncio.create_task(run_scrape_all(SessionLocal))
+    return HTMLResponse("<span style='color:#94a3b8;font-size:.8rem;'>Refreshing all…</span>")
+
+
+@app.get("/settings/reset-discord-defaults", response_class=HTMLResponse)
+async def reset_discord_defaults(db: DB):
+    for key, val in DEFAULT_SETTINGS.items():
+        if key.startswith("discord_"):
+            set_setting(db, key, val)
+    db.commit()
+    return RedirectResponse("/settings", status_code=303)
 
 
 @app.get("/mods/{mod_id}/history", response_class=HTMLResponse)
