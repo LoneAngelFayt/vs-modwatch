@@ -4,7 +4,9 @@ import os
 import re as _re
 import sys
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone, timedelta
 from typing import Annotated
+import httpx as _httpx
 from fastapi import FastAPI, Depends, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -27,6 +29,31 @@ for _name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
     _log.propagate = False
 
 templates = Jinja2Templates(directory="app/templates")
+
+APP_VERSION = os.getenv("APP_VERSION", "dev")
+_GITHUB_REPO = "LoneAngelFayt/vs-modwatch"
+_version_cache: dict = {"latest": None, "checked_at": None}
+
+
+async def _get_latest_github_version() -> str | None:
+    """Return the latest release tag from GitHub, cached for 1 hour. Returns None on failure."""
+    now = datetime.now(timezone.utc)
+    if _version_cache["checked_at"] and (now - _version_cache["checked_at"]) < timedelta(hours=1):
+        return _version_cache["latest"]
+    try:
+        async with _httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(
+                f"https://api.github.com/repos/{_GITHUB_REPO}/releases/latest",
+                headers={"Accept": "application/vnd.github+json"},
+            )
+            if resp.status_code == 200:
+                tag = resp.json().get("tag_name", "").lstrip("v")
+                _version_cache["latest"] = tag
+                _version_cache["checked_at"] = now
+                return tag
+    except Exception:
+        pass
+    return None
 
 
 def _validate_json_array(raw: str) -> str:
@@ -273,9 +300,10 @@ async def settings_page(request: Request, db: DB):
     for key in DEFAULT_SETTINGS:
         if key.startswith("discord_"):
             ctx[key] = get_setting(db, key, DEFAULT_SETTINGS[key])
-    ctx["app_version"] = "1.0.0"
-    ctx["is_latest"] = True
-    ctx["latest_version"] = "1.0.0"
+    latest = await _get_latest_github_version()
+    ctx["app_version"] = APP_VERSION
+    ctx["latest_version"] = latest or APP_VERSION
+    ctx["is_latest"] = (latest is None) or (APP_VERSION == "dev") or (APP_VERSION == latest)
     return templates.TemplateResponse(request, "settings.html", ctx)
 
 

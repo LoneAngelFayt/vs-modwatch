@@ -85,5 +85,6 @@ jobs:
           tags: |
             ${{ env.IMAGE }}:${{ needs.release.outputs.new_release_version }}
             ${{ env.IMAGE }}:latest
+          build-args: VERSION=${{ needs.release.outputs.new_release_version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
