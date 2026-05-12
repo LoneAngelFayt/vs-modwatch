@@ -5,19 +5,19 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 logger = logging.getLogger(__name__)
 
 
-async def _update_mod(db, mod, data, discord_url, apprise_url):
+async def _update_mod(db, mod, data, discord_url, apprise_url, discord_settings, notify_when, latest_vs_version):
     """Update a single mod from scraped data. Handles initial seed and version changes."""
     from app.db import ModVersion
     from app.notifier import notify
+    from app.versions import compat_level
     from datetime import datetime, timezone
 
     now = datetime.now(timezone.utc)
     existing_versions = {v.version for v in db.query(ModVersion).filter_by(mod_id=mod.id).all()}
 
-    # Detect new current version
     is_new_version = bool(data.current_version and data.current_version != mod.current_version)
 
-    # Seed all history entries not yet stored
+    # Seed all history entries not yet stored (including download info)
     for entry in data.version_history:
         if entry["version"] and entry["version"] not in existing_versions:
             db.add(ModVersion(
@@ -25,19 +25,34 @@ async def _update_mod(db, mod, data, discord_url, apprise_url):
                 version=entry["version"],
                 vs_version=entry.get("vs_version"),
                 released_at=entry.get("released_at"),
+                download_url=entry.get("download_url"),
+                file_size=entry.get("file_size"),
+                filename=entry.get("filename"),
             ))
             existing_versions.add(entry["version"])
+
+    compatible_with_latest = bool(
+        data.vs_version and latest_vs_version and
+        compat_level(data.vs_version, latest_vs_version) == "compatible"
+    )
 
     if is_new_version:
         mod.has_unread_update = True
         await notify(
             discord_url=discord_url,
             apprise_url=apprise_url,
+            notify_when=notify_when,
+            compatible_with_latest=compatible_with_latest,
+            discord_settings=discord_settings,
             mod_name=mod.name or mod.url,
             new_version=data.current_version,
+            old_version=mod.current_version or "",
             vs_version=data.vs_version or "",
             side=data.side,
             mod_url=mod.url,
+            filename=data.version_history[0].get("filename") if data.version_history else None,
+            file_size=data.version_history[0].get("file_size") if data.version_history else None,
+            latest_vs_version=latest_vs_version or "",
         )
 
     mod.name = data.name
@@ -46,23 +61,42 @@ async def _update_mod(db, mod, data, discord_url, apprise_url):
     mod.side = data.side
     mod.last_updated = data.last_updated
     mod.last_checked = now
+    if data.version_history:
+        mod.download_url = data.version_history[0].get("download_url")
+        mod.file_size = data.version_history[0].get("file_size")
     db.commit()
 
 
 async def run_scrape_one(session_factory, mod_id: int) -> None:
-    from app.db import Mod, get_setting
+    from app.db import Mod, VSVersion, get_setting, DEFAULT_SETTINGS
     from app.scraper import fetch_mod_page
 
     db = session_factory()
     try:
         discord_url = os.getenv("DISCORD_WEBHOOK_URL") or get_setting(db, "discord_webhook_url")
         apprise_url = os.getenv("APPRISE_URL") or get_setting(db, "apprise_url")
+        notify_when = get_setting(db, "notify_when", "always")
+
+        latest_vs_version = ""
+        try:
+            latest = db.query(VSVersion).filter_by(is_latest=True).first()
+            if latest:
+                latest_vs_version = latest.version
+        except Exception:
+            pass
+
+        discord_settings = {
+            key: get_setting(db, key, DEFAULT_SETTINGS[key])
+            for key in DEFAULT_SETTINGS
+            if key.startswith("discord_")
+        }
+
         mod = db.get(Mod, mod_id)
         if not mod:
             return
         try:
             data = await fetch_mod_page(mod.url)
-            await _update_mod(db, mod, data, discord_url, apprise_url)
+            await _update_mod(db, mod, data, discord_url, apprise_url, discord_settings, notify_when, latest_vs_version)
         except Exception:
             db.rollback()
             logger.exception("Failed to scrape mod %s", mod.url)
@@ -94,11 +128,29 @@ async def run_scrape_all(session_factory) -> None:
 
         discord_url = os.getenv("DISCORD_WEBHOOK_URL") or get_setting(db, "discord_webhook_url")
         apprise_url = os.getenv("APPRISE_URL") or get_setting(db, "apprise_url")
+        notify_when = get_setting(db, "notify_when", "always")
+
+        # Get latest VS version
+        latest_vs_version = ""
+        try:
+            latest = db.query(VSVersion).filter_by(is_latest=True).first()
+            if latest:
+                latest_vs_version = latest.version
+        except Exception:
+            pass
+
+        # Build discord_settings dict
+        from app.db import DEFAULT_SETTINGS
+        discord_settings = {
+            key: get_setting(db, key, DEFAULT_SETTINGS[key])
+            for key in DEFAULT_SETTINGS
+            if key.startswith("discord_")
+        }
 
         for mod in db.query(Mod).all():
             try:
                 data = await fetch_mod_page(mod.url)
-                await _update_mod(db, mod, data, discord_url, apprise_url)
+                await _update_mod(db, mod, data, discord_url, apprise_url, discord_settings, notify_when, latest_vs_version)
             except Exception:
                 db.rollback()
                 logger.exception("Failed to scrape mod %s", mod.url)
