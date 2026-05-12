@@ -153,7 +153,10 @@ def parse_mod_page(html: str) -> ModPageData:
             "is_tester": is_tester,
         })
 
-    current = version_history[0] if version_history else {}
+    # Use the latest stable (non-tester) release as the canonical current version.
+    # This ensures tester builds don't mask an outdated stable release.
+    stable = next((e for e in version_history if not e.get("is_tester")), None)
+    current = stable or (version_history[0] if version_history else {})
     return ModPageData(
         name=name,
         current_version=current.get("version", ""),
