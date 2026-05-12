@@ -50,6 +50,16 @@ def _parse_date(raw: str) -> Optional[datetime]:
     return None
 
 
+def _parse_file_size(raw: str) -> int | None:
+    """Convert '1.8 MB' / '512 KB' / '2.1 GB' to bytes, return None if unparseable."""
+    import re as _re
+    m = _re.match(r"([\d.]+)\s*(KB|MB|GB)", raw.strip(), _re.IGNORECASE)
+    if not m:
+        return None
+    value, unit = float(m.group(1)), m.group(2).upper()
+    return int(value * {"KB": 1024, "MB": 1024**2, "GB": 1024**3}[unit])
+
+
 def _parse_game_versions(td) -> str:
     """Extract game version string from a release row's game-version cell.
 
@@ -94,10 +104,33 @@ def parse_mod_page(html: str) -> ModPageData:
         vs_version = _parse_game_versions(tds[2])
         date_span = tds[4].find("span")
         date_text = date_span.get_text(strip=True) if date_span else tds[4].get_text(strip=True)
+
+        # Download info: td[6] contains <a class="mod-dl" href="/download/...">filename.zip</a>
+        download_url = None
+        filename = None
+        file_size = None
+        if len(tds) > 6:
+            dl_link = tds[6].find("a", class_="mod-dl")
+            if dl_link:
+                href = dl_link.get("href", "")
+                if href.startswith("/"):
+                    download_url = "https://mods.vintagestory.at" + href
+                elif href:
+                    download_url = href
+                link_text = dl_link.get_text(strip=True)
+                filename = link_text if link_text.endswith(".zip") else href.rsplit("/", 1)[-1]
+            # File size: not present on the live page; set to None
+            file_size_el = tds[6].find(class_="filesize") if len(tds) > 6 else None
+            if file_size_el:
+                file_size = _parse_file_size(file_size_el.get_text(strip=True))
+
         version_history.append({
             "version": version,
             "vs_version": vs_version,
             "released_at": _parse_date(date_text),
+            "download_url": download_url,
+            "filename": filename,
+            "file_size": file_size,
         })
 
     current = version_history[0] if version_history else {}

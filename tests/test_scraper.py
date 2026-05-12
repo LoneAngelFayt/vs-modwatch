@@ -55,6 +55,21 @@ def test_parse_vs_version_list_sorted_desc(vs_html):
 def test_parse_vs_version_list_contains_known(vs_html):
     assert "1.21.6" in parse_vs_version_list(vs_html)
 
+def test_parse_download_url(mod_html):
+    data = parse_mod_page(mod_html)
+    assert data.version_history[0]["download_url"] is not None
+    assert "purposefulstorage" in data.version_history[0]["download_url"].lower() or ".zip" in data.version_history[0]["download_url"].lower()
+
+def test_parse_filename(mod_html):
+    data = parse_mod_page(mod_html)
+    assert data.version_history[0]["filename"] is not None
+    assert data.version_history[0]["filename"].endswith(".zip")
+
+def test_parse_file_size_type(mod_html):
+    data = parse_mod_page(mod_html)
+    entry = data.version_history[0]
+    assert entry["file_size"] is None or isinstance(entry["file_size"], int)
+
 def test_parse_multi_tag_uses_first(mod_html):
     # Build a minimal page with a release that has two game version tags
     html = """<html><body>
