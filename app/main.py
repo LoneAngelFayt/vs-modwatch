@@ -134,9 +134,10 @@ async def add_mod(request: Request, db: DB, url: str = Form(...)):
     asyncio.create_task(run_scrape_all(SessionLocal))
     if not is_htmx:
         return RedirectResponse("/", status_code=303)
-    return templates.TemplateResponse(request, "mod_card.html", {
-        "item": {"mod": mod, "compat": {"state": "unknown", "note": ""}},
-    })
+    # Use HX-Redirect so HTMX reloads the full page — works for both list and card view
+    response = HTMLResponse("")
+    response.headers["HX-Redirect"] = "/"
+    return response
 
 
 @app.delete("/mods/{mod_id}", response_class=HTMLResponse)
