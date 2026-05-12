@@ -114,7 +114,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
 @app.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request, db: DB, target: str = "", view: str = "list", error: str = ""):
+async def dashboard(request: Request, db: DB, target: str = "", view: str = "list", error: str = "", added: int = 0):
     vs_versions_raw = db.query(VSVersion).all()
     vs_versions = sorted(vs_versions_raw, key=lambda v: PkgVersion(v.version), reverse=True)
     if not target:
@@ -134,7 +134,7 @@ async def dashboard(request: Request, db: DB, target: str = "", view: str = "lis
         "request": request, "mod_data": mod_data,
         "vs_versions": vs_versions, "target": target,
         "view": view, "allow_outdated_dl": allow_outdated_dl,
-        "error": error,
+        "error": error, "added_id": added,
     })
 
 
@@ -153,12 +153,11 @@ async def add_mod(request: Request, db: DB, url: str = Form(...)):
     mod = Mod(url=url)
     db.add(mod)
     db.commit()
-    asyncio.create_task(run_scrape_all(SessionLocal))
+    asyncio.create_task(run_scrape_one(SessionLocal, mod.id))
     if not is_htmx:
-        return RedirectResponse("/", status_code=303)
-    # Use HX-Redirect so HTMX reloads the full page — works for both list and card view
+        return RedirectResponse(f"/?added={mod.id}", status_code=303)
     response = HTMLResponse("")
-    response.headers["HX-Redirect"] = "/"
+    response.headers["HX-Redirect"] = f"/?added={mod.id}"
     return response
 
 

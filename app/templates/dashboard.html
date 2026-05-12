@@ -9,9 +9,12 @@
   <form method="post" action="/mods"
         hx-post="/mods"
         style="display:flex;gap:.5rem;flex:1;min-width:300px;">
-    <input type="url" name="url" placeholder="https://mods.vintagestory.at/modname"
+    <input type="url" name="url" id="mod-url-input" placeholder="https://mods.vintagestory.at/modname"
            style="flex:1;padding:.5rem;border-radius:4px;border:1px solid #2d3148;background:#1a1d27;color:#e2e8f0;" required>
-    <button type="submit" class="btn btn-primary">Track Mod</button>
+    <button type="submit" class="btn btn-primary track-btn">
+      <span class="track-label">Track Mod</span>
+      <span class="htmx-indicator"><span class="spinner"></span>Adding…</span>
+    </button>
   </form>
   <div style="display:flex;gap:.5rem;align-items:center;">
     <label style="color:#94a3b8;font-size:.875rem;">Target VS:</label>
@@ -33,6 +36,25 @@
        style="border-radius:0;text-decoration:none;">⊞ Cards</a>
   </div>
 </div>
+
+{% if added_id %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Highlight the newly added row/card
+    const el = document.getElementById('row-{{ added_id }}') || document.getElementById('mod-{{ added_id }}');
+    if (el) {
+      el.style.transition = 'box-shadow .3s';
+      el.style.boxShadow = '0 0 0 2px #3b82f6';
+      setTimeout(() => { el.style.boxShadow = ''; }, 2000);
+      // Auto-refresh the row after 4 seconds to pick up scrape results
+      setTimeout(() => {
+        const refreshBtn = el.querySelector('[hx-post*="/refresh"]');
+        if (refreshBtn) htmx.trigger(refreshBtn, 'click');
+      }, 4000);
+    }
+  });
+</script>
+{% endif %}
 
 {% if view == 'list' %}
   {% include "list_view.html" %}
