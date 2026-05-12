@@ -1,6 +1,8 @@
 import asyncio
+import logging
 import os
 import re as _re
+import sys
 from contextlib import asynccontextmanager
 from typing import Annotated
 from fastapi import FastAPI, Depends, Request, Form, HTTPException
@@ -15,6 +17,14 @@ from app.versions import is_compatible, compat_level
 from app.notifier import build_discord_payload, send_discord
 
 import json as _json
+
+# Route all uvicorn and app logs to stdout so Docker captures them correctly
+_stdout_handler = logging.StreamHandler(sys.stdout)
+_stdout_handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s - %(message)s"))
+for _name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+    _log = logging.getLogger(_name)
+    _log.handlers = [_stdout_handler]
+    _log.propagate = False
 
 templates = Jinja2Templates(directory="app/templates")
 
