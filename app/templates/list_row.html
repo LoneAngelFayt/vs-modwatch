@@ -22,7 +22,7 @@
   </td>
   <td>
     {{ mod.current_version or "—" }}
-    {% if compat.dev %}<span class="badge" style="background:#1e2d4a;color:#67e8f9;font-size:.65rem;margin-left:.3rem;">🔬 {{ compat.dev.version }}</span>{% endif %}
+    {% if compat.dev %}<span class="badge" style="background:#1e2d4a;color:#67e8f9;font-size:.65rem;margin-left:.3rem;">🧪 {{ compat.dev.version }}</span>{% endif %}
   </td>
   <td>{{ mod.vs_version or "—" }}</td>
   <td>
@@ -62,7 +62,7 @@
     {% if compat.dev and compat.dev.download_url %}
     <div class="dl-wrap">
       <a href="{{ compat.dev.download_url }}" target="_blank">
-        <button class="btn btn-download" style="padding:.3rem .6rem;font-size:.78rem;background:#0f3a4a;color:#67e8f9;border-color:#1e4a5a44;">🔬</button>
+        <button class="btn btn-download" style="padding:.3rem .6rem;font-size:.78rem;background:#0f3a4a;color:#67e8f9;border-color:#1e4a5a44;">🧪</button>
       </a>
       <div class="dl-tip">
         <span class="dl-fn">{{ compat.dev.filename or compat.dev.version }}</span>
