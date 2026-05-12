@@ -74,3 +74,27 @@ def test_compat_level_exact_match():
 
 def test_compat_level_gte_below_is_stale():
     assert compat_level(">=1.19", "1.18.0") == "stale"
+
+# Pre-release version handling (e.g. "1.22.0-pre.1 - 1.22.2")
+def test_compat_level_range_with_prerelease_lo_in():
+    assert compat_level("1.22.0-pre.1 - 1.22.2", "1.22.1") == "compatible"
+
+def test_compat_level_range_with_prerelease_lo_boundary():
+    assert compat_level("1.22.0-pre.1 - 1.22.2", "1.22.0") == "compatible"
+
+def test_compat_level_range_with_prerelease_hi_boundary():
+    assert compat_level("1.22.0-pre.1 - 1.22.2", "1.22.2") == "compatible"
+
+def test_compat_level_range_with_prerelease_above():
+    assert compat_level("1.22.0-pre.1 - 1.22.2", "1.22.3") == "stale"
+
+def test_compat_level_range_with_prerelease_below():
+    assert compat_level("1.22.0-pre.1 - 1.22.2", "1.21.6") == "stale"
+
+def test_is_compatible_range_with_prerelease():
+    assert is_compatible("1.22.0-pre.1 - 1.22.2", "1.22.1") is True
+
+def test_parse_vs_versions_skips_prerelease_gracefully():
+    # Pre-release versions sort correctly after stripping suffix
+    result = parse_vs_versions(["1.22.2", "1.22.0-pre.1", "1.21.6"])
+    assert result[0] == "1.22.2"
