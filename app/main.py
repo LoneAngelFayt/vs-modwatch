@@ -178,11 +178,43 @@ async def delete_mod(mod_id: int, db: DB):
 
 
 @app.post("/mods/{mod_id}/refresh", response_class=HTMLResponse)
-async def refresh_mod(mod_id: int, db: DB):
-    if not db.get(Mod, mod_id):
+async def refresh_mod(mod_id: int, request: Request, db: DB, target: str = "", view: str = "list"):
+    mod = db.get(Mod, mod_id)
+    if not mod:
         raise HTTPException(status_code=404)
     asyncio.create_task(run_scrape_one(SessionLocal, mod_id))
-    return HTMLResponse("<span style='color:#94a3b8;font-size:.8rem;'>Refreshing…</span>")
+    # Return a placeholder row/card that auto-reloads after 4s once the scrape finishes
+    delay_url = f"/mods/{mod_id}/row?target={target}&view={view}"
+    placeholder = (
+        f'<tr id="row-{mod_id}" '
+        f'hx-get="{delay_url}" hx-trigger="load delay:4s" '
+        f'hx-target="#row-{mod_id}" hx-swap="outerHTML">'
+        f'<td colspan="9" style="padding:.6rem .75rem;color:#64748b;font-size:.8rem;">'
+        f'<span style="display:inline-flex;align-items:center;gap:.5rem;">'
+        f'<span style="width:12px;height:12px;border:2px solid #2d3148;border-top-color:#3b82f6;'
+        f'border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></span>'
+        f'Refreshing…</span></td></tr>'
+    )
+    return HTMLResponse(placeholder)
+
+
+@app.get("/mods/{mod_id}/row", response_class=HTMLResponse)
+async def mod_row(mod_id: int, request: Request, db: DB, target: str = "", view: str = "list"):
+    """Return the rendered list row or card for a single mod (used after refresh)."""
+    mod = db.get(Mod, mod_id)
+    if not mod:
+        return HTMLResponse("", status_code=200)
+    if not target:
+        vs_versions_raw = db.query(VSVersion).all()
+        vs_versions = sorted(vs_versions_raw, key=lambda v: PkgVersion(v.version), reverse=True)
+        latest = next((v for v in vs_versions if v.is_latest), None)
+        target = latest.version if latest else (vs_versions[0].version if vs_versions else "")
+    allow_outdated_dl = get_setting(db, "allow_outdated_downloads", "false").lower() == "true"
+    item = {"mod": mod, "compat": _compat_state(mod, target, db)}
+    template_name = "mod_card.html" if view == "cards" else "list_row.html"
+    return templates.TemplateResponse(template_name, {
+        "request": request, "item": item, "target": target, "allow_outdated_dl": allow_outdated_dl,
+    })
 
 
 @app.post("/mods/{mod_id}/toggle-server", response_class=HTMLResponse)

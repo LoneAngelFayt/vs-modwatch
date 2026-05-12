@@ -63,11 +63,18 @@ def compat_level(vs_version_str: str, target: str) -> str:
     if m:
         return "compatible" if _normalize(target) >= _normalize(m.group(1)) else "stale"
 
-    # Range expression — strictly compatible or stale
+    # Range expression
     m = re.match(r"^(\d+\.\d+(?:\.\d+)?(?:-\S+)?)\s+-\s+(\d+\.\d+(?:\.\d+)?(?:-\S+)?)$", s)
     if m:
-        in_range = _normalize(m.group(1)) <= _normalize(target) <= _normalize(m.group(2))
-        return "compatible" if in_range else "stale"
+        lo = _normalize(m.group(1))
+        hi = _normalize(m.group(2))
+        tgt = _normalize(target)
+        if lo <= tgt <= hi:
+            return "compatible"
+        # Target is only a patch version above the upper bound — may still work
+        if tgt > hi and tgt.major == hi.major and tgt.minor == hi.minor:
+            return "warn"
+        return "stale"
 
     # Exact single version
     try:
