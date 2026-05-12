@@ -33,6 +33,8 @@ templates = Jinja2Templates(directory="app/templates")
 APP_VERSION = os.getenv("APP_VERSION", "dev")
 _GITHUB_REPO = "LoneAngelFayt/vs-modwatch"
 _version_cache: dict = {"latest": None, "checked_at": None}
+_version_lock = asyncio.Lock()
+_version_logger = logging.getLogger(__name__)
 
 
 async def _get_latest_github_version() -> str | None:
@@ -40,19 +42,23 @@ async def _get_latest_github_version() -> str | None:
     now = datetime.now(timezone.utc)
     if _version_cache["checked_at"] and (now - _version_cache["checked_at"]) < timedelta(hours=1):
         return _version_cache["latest"]
-    try:
-        async with _httpx.AsyncClient(timeout=5) as client:
-            resp = await client.get(
-                f"https://api.github.com/repos/{_GITHUB_REPO}/releases/latest",
-                headers={"Accept": "application/vnd.github+json"},
-            )
-            if resp.status_code == 200:
-                tag = resp.json().get("tag_name", "").lstrip("v")
-                _version_cache["latest"] = tag
-                _version_cache["checked_at"] = now
-                return tag
-    except Exception:
-        pass
+    async with _version_lock:
+        # Re-check inside lock in case another coroutine populated it while we waited
+        if _version_cache["checked_at"] and (now - _version_cache["checked_at"]) < timedelta(hours=1):
+            return _version_cache["latest"]
+        try:
+            async with _httpx.AsyncClient(timeout=5) as client:
+                resp = await client.get(
+                    f"https://api.github.com/repos/{_GITHUB_REPO}/releases/latest",
+                    headers={"Accept": "application/vnd.github+json"},
+                )
+                if resp.status_code == 200:
+                    tag = resp.json().get("tag_name", "").lstrip("v")
+                    _version_cache["latest"] = tag
+                    _version_cache["checked_at"] = now
+                    return tag
+        except (_httpx.HTTPError, OSError, asyncio.TimeoutError) as exc:
+            _version_logger.debug("GitHub version check failed: %s", exc)
     return None
 
 

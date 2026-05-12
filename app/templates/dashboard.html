@@ -46,7 +46,9 @@
       el.style.transition = 'box-shadow .3s';
       el.style.boxShadow = '0 0 0 2px #3b82f6';
       setTimeout(() => { el.style.boxShadow = ''; }, 2000);
-      // Auto-refresh the row after 4 seconds to pick up scrape results
+      // Auto-refresh the row after 4 seconds to pick up scrape results.
+      // If the scrape hasn't finished by then the row re-renders with the same
+      // "unknown" state — no retry; the user can hit Refresh manually.
       setTimeout(() => {
         const refreshBtn = el.querySelector('[hx-post*="/refresh"]');
         if (refreshBtn) htmx.trigger(refreshBtn, 'click');
