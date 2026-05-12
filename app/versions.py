@@ -3,7 +3,16 @@ from packaging.version import Version
 
 
 def _normalize(v: str) -> Version:
-    parts = v.strip().split(".")
+    """Normalize a VS version string to a PEP 440 Version.
+
+    Handles VS-specific pre-release formats:
+      '1.22.0-rc.5'  -> Version('1.22.0rc5')   (release candidate, sortable)
+      '1.22.0-pre.1' -> Version('1.22.0')       (treat as stable for range checks)
+    """
+    v = v.strip()
+    v = re.sub(r"-rc\.(\d+)$", r"rc\1", v, flags=re.IGNORECASE)
+    v = re.sub(r"-pre\.\d+$", "", v, flags=re.IGNORECASE)
+    parts = v.split(".")
     while len(parts) < 3:
         parts.append("0")
     return Version(".".join(parts))
@@ -18,7 +27,7 @@ def is_compatible(vs_version_str: str, target: str) -> bool:
     if m:
         return _normalize(target) >= _normalize(m.group(1))
 
-    m = re.match(r"^(\d+\.\d+(?:\.\d+)?)\s*-\s*(\d+\.\d+(?:\.\d+)?)$", s)
+    m = re.match(r"^(\d+\.\d+(?:\.\d+)?(?:-\S+)?)\s+-\s+(\d+\.\d+(?:\.\d+)?(?:-\S+)?)$", s)
     if m:
         return _normalize(m.group(1)) <= _normalize(target) <= _normalize(m.group(2))
 
@@ -55,7 +64,7 @@ def compat_level(vs_version_str: str, target: str) -> str:
         return "compatible" if _normalize(target) >= _normalize(m.group(1)) else "stale"
 
     # Range expression — strictly compatible or stale
-    m = re.match(r"^(\d+\.\d+(?:\.\d+)?)\s*-\s*(\d+\.\d+(?:\.\d+)?)$", s)
+    m = re.match(r"^(\d+\.\d+(?:\.\d+)?(?:-\S+)?)\s+-\s+(\d+\.\d+(?:\.\d+)?(?:-\S+)?)$", s)
     if m:
         in_range = _normalize(m.group(1)) <= _normalize(target) <= _normalize(m.group(2))
         return "compatible" if in_range else "stale"

@@ -41,14 +41,14 @@ def test_dashboard_loads(client):
 
 def test_add_mod_invalid_url(client):
     c, db = client
-    resp = c.post("/mods", data={"url": "not-a-url"})
+    resp = c.post("/mods", data={"url": "not-a-url"}, headers={"HX-Request": "true"})
     assert resp.status_code == 422
 
 def test_add_mod_already_tracked(client):
     c, db = client
     db.add(Mod(url="https://mods.vintagestory.at/testmod", name="Test"))
     db.commit()
-    resp = c.post("/mods", data={"url": "https://mods.vintagestory.at/testmod"})
+    resp = c.post("/mods", data={"url": "https://mods.vintagestory.at/testmod"}, headers={"HX-Request": "true"})
     assert "already" in resp.text.lower()
 
 def test_settings_page_loads(client):
