@@ -14,7 +14,7 @@ class ModPageData:
     vs_version: str
     side: str  # "client", "server", "both"
     last_updated: Optional[datetime]
-    version_history: list[dict]  # [{"version": str, "vs_version": str, "released_at": datetime|None}]
+    version_history: list[dict]  # [{"version": str, "vs_version": str, "released_at": datetime|None, "download_url": str|None, "filename": str|None, "file_size": int|None}]
 
 
 def _parse_side(raw: str) -> str:
@@ -52,8 +52,7 @@ def _parse_date(raw: str) -> Optional[datetime]:
 
 def _parse_file_size(raw: str) -> int | None:
     """Convert '1.8 MB' / '512 KB' / '2.1 GB' to bytes, return None if unparseable."""
-    import re as _re
-    m = _re.match(r"([\d.]+)\s*(KB|MB|GB)", raw.strip(), _re.IGNORECASE)
+    m = re.match(r"([\d.]+)\s*(KB|MB|GB)", raw.strip(), re.IGNORECASE)
     if not m:
         return None
     value, unit = float(m.group(1)), m.group(2).upper()
@@ -120,7 +119,7 @@ def parse_mod_page(html: str) -> ModPageData:
                 link_text = dl_link.get_text(strip=True)
                 filename = link_text if link_text.endswith(".zip") else href.rsplit("/", 1)[-1]
             # File size: not present on the live page; set to None
-            file_size_el = tds[6].find(class_="filesize") if len(tds) > 6 else None
+            file_size_el = tds[6].find(class_="filesize")
             if file_size_el:
                 file_size = _parse_file_size(file_size_el.get_text(strip=True))
 
