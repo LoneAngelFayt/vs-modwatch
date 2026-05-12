@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import httpx
 import apprise as apprise_lib
 
@@ -8,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 def substitute_vars(template: str, ctx: dict) -> str:
     """Replace {key} placeholders with values from ctx. Unknown keys are left as-is."""
-    import re
     def replace(m):
         return str(ctx.get(m.group(1), m.group(0)))
     return re.sub(r"\{(\w+)\}", replace, template)
