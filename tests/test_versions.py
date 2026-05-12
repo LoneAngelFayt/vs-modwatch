@@ -1,4 +1,4 @@
-from app.versions import is_compatible, parse_vs_versions
+from app.versions import is_compatible, parse_vs_versions, compat_level
 
 def test_gte_exact():
     assert is_compatible(">=1.19", "1.19.0") is True
@@ -46,3 +46,31 @@ def test_empty_vs_version_returns_false():
 
 def test_whitespace_vs_version_returns_false():
     assert is_compatible("   ", "1.21.6") is False
+
+
+def test_compat_level_compatible_gte():
+    assert compat_level(">=1.19", "1.21.6") == "compatible"
+
+def test_compat_level_compatible_range():
+    assert compat_level("1.19.0 - 1.21.6", "1.21.6") == "compatible"
+
+def test_compat_level_warn_patch_differs():
+    assert compat_level("1.21.3", "1.21.6") == "warn"
+
+def test_compat_level_warn_patch_below():
+    assert compat_level("1.21.0", "1.21.6") == "warn"
+
+def test_compat_level_stale_minor_differs():
+    assert compat_level("1.19.8", "1.21.6") == "stale"
+
+def test_compat_level_stale_major_differs():
+    assert compat_level("1.18.15", "1.21.6") == "stale"
+
+def test_compat_level_empty_string():
+    assert compat_level("", "1.21.6") == "stale"
+
+def test_compat_level_exact_match():
+    assert compat_level("1.21.6", "1.21.6") == "compatible"
+
+def test_compat_level_gte_below_is_stale():
+    assert compat_level(">=1.19", "1.18.0") == "stale"
