@@ -183,18 +183,30 @@ async def refresh_mod(mod_id: int, request: Request, db: DB, target: str = "", v
     if not mod:
         raise HTTPException(status_code=404)
     asyncio.create_task(run_scrape_one(SessionLocal, mod_id))
-    # Return a placeholder row/card that auto-reloads after 4s once the scrape finishes
     delay_url = f"/mods/{mod_id}/row?target={target}&view={view}"
-    placeholder = (
-        f'<tr id="row-{mod_id}" '
-        f'hx-get="{delay_url}" hx-trigger="load delay:4s" '
-        f'hx-target="#row-{mod_id}" hx-swap="outerHTML">'
-        f'<td colspan="9" style="padding:.6rem .75rem;color:#64748b;font-size:.8rem;">'
-        f'<span style="display:inline-flex;align-items:center;gap:.5rem;">'
-        f'<span style="width:12px;height:12px;border:2px solid #2d3148;border-top-color:#3b82f6;'
-        f'border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></span>'
-        f'Refreshing…</span></td></tr>'
+    spinner = (
+        '<span style="display:inline-flex;align-items:center;gap:.5rem;">'
+        '<span style="width:12px;height:12px;border:2px solid #2d3148;border-top-color:#3b82f6;'
+        'border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></span>'
+        'Refreshing…</span>'
     )
+    if view == "cards":
+        # Card view: placeholder div that reloads itself
+        placeholder = (
+            f'<div id="mod-{mod_id}" '
+            f'hx-get="{delay_url}" hx-trigger="load delay:4s" '
+            f'hx-target="#mod-{mod_id}" hx-swap="outerHTML" '
+            f'style="background:#1a1d27;border:1px solid #2d3148;border-radius:8px;'
+            f'padding:1rem;color:#64748b;font-size:.8rem;">{spinner}</div>'
+        )
+    else:
+        # List view: placeholder tr that reloads itself
+        placeholder = (
+            f'<tr id="row-{mod_id}" '
+            f'hx-get="{delay_url}" hx-trigger="load delay:4s" '
+            f'hx-target="#row-{mod_id}" hx-swap="outerHTML">'
+            f'<td colspan="9" style="padding:.6rem .75rem;color:#64748b;font-size:.8rem;">{spinner}</td></tr>'
+        )
     return HTMLResponse(placeholder)
 
 
@@ -203,7 +215,7 @@ async def mod_row(mod_id: int, request: Request, db: DB, target: str = "", view:
     """Return the rendered list row or card for a single mod (used after refresh)."""
     mod = db.get(Mod, mod_id)
     if not mod:
-        return HTMLResponse("", status_code=200)
+        raise HTTPException(status_code=404)
     if not target:
         vs_versions_raw = db.query(VSVersion).all()
         vs_versions = sorted(vs_versions_raw, key=lambda v: PkgVersion(v.version), reverse=True)

@@ -49,9 +49,10 @@ def parse_vs_versions(raw: list[str]) -> list[str]:
 def compat_level(vs_version_str: str, target: str) -> str:
     """Return 'compatible', 'warn', or 'stale' for a mod vs a target VS version.
 
-    warn  = exact single version, patch only differs (likely still works)
-    stale = exact single version, minor or major differs (probably broken)
-    Explicit >= and range expressions are evaluated strictly — compatible or stale, no warn path.
+    warn  = patch only differs from the relevant version boundary (likely still works)
+    stale = minor or major differs (probably broken)
+    For ranges, warn is returned when the target is one patch above the upper bound.
+    >= expressions are strictly compatible or stale.
     """
     if not vs_version_str or not vs_version_str.strip():
         return "stale"
