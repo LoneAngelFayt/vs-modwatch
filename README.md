@@ -1,4 +1,4 @@
-# ModWatch
+# VS-ModWatch
 
 Self-hosted Vintage Story mod update tracker. Add mod pages from [mods.vintagestory.at](https://mods.vintagestory.at), get notified when they update, and filter by target VS version to see compatibility at a glance.
 

@@ -37,7 +37,7 @@ def test_dashboard_loads(client):
     c, db = client
     resp = c.get("/")
     assert resp.status_code == 200
-    assert "ModWatch" in resp.text
+    assert "VS-ModWatch" in resp.text
 
 def test_add_mod_invalid_url(client):
     c, db = client
