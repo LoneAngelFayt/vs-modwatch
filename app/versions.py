@@ -1,6 +1,13 @@
 import re
 from packaging.version import Version
 
+_DEV_MARKERS = re.compile(r"[-.]?(dev|rc|alpha|beta|pre)\b", re.IGNORECASE)
+
+
+def is_dev_version(version_str: str) -> bool:
+    """Return True if the version string looks like a dev/testing/pre-release build."""
+    return bool(_DEV_MARKERS.search(version_str))
+
 
 def _normalize(v: str) -> Version:
     """Normalize a VS version string to a PEP 440 Version.

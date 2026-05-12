@@ -16,7 +16,13 @@ async def _update_mod(db, mod, data, discord_url, apprise_url, discord_settings,
     now = datetime.now(timezone.utc)
     existing_versions = {v.version for v in db.query(ModVersion).filter_by(mod_id=mod.id).all()}
 
-    is_new_version = bool(data.current_version and data.current_version != mod.current_version)
+    # Only notify on a version change if there was already a tracked version.
+    # mod.current_version is None on first scrape — don't fire a notification then.
+    is_new_version = bool(
+        data.current_version
+        and mod.current_version is not None
+        and data.current_version != mod.current_version
+    )
 
     # Seed all history entries not yet stored (including download info)
     for entry in data.version_history:
@@ -28,6 +34,7 @@ async def _update_mod(db, mod, data, discord_url, apprise_url, discord_settings,
                 released_at=entry.get("released_at"),
                 download_url=entry.get("download_url"),
                 file_size=entry.get("file_size"),
+                is_tester=entry.get("is_tester", False),
                 filename=entry.get("filename"),
             ))
             existing_versions.add(entry["version"])
