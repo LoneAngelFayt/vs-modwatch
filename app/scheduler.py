@@ -46,6 +46,10 @@ async def _update_mod(db, mod, data, discord_url, apprise_url, discord_settings,
             # Backfill is_tester on rows seeded before this field was added
             existing_rows[entry["version"]].is_tester = True
 
+    # Stable current entry: same logic as scraper — skip tester builds for mod-level fields
+    stable_entry = next((e for e in data.version_history if not e.get("is_tester")), None)
+    current_entry = stable_entry or (data.version_history[0] if data.version_history else None)
+
     compatible_with_latest = bool(
         data.vs_version and latest_vs_version and
         compat_level(data.vs_version, latest_vs_version) == "compatible"
@@ -65,8 +69,8 @@ async def _update_mod(db, mod, data, discord_url, apprise_url, discord_settings,
             vs_version=data.vs_version or "",
             side=data.side,
             mod_url=mod.url,
-            filename=data.version_history[0].get("filename") if data.version_history else None,
-            file_size=data.version_history[0].get("file_size") if data.version_history else None,
+            filename=current_entry.get("filename") if current_entry else None,
+            file_size=current_entry.get("file_size") if current_entry else None,
             latest_vs_version=latest_vs_version or "",
         )
 
@@ -76,10 +80,10 @@ async def _update_mod(db, mod, data, discord_url, apprise_url, discord_settings,
     mod.side = data.side
     mod.last_updated = data.last_updated
     mod.last_checked = now
-    if data.version_history:
-        mod.download_url = data.version_history[0].get("download_url")
-        mod.file_size = data.version_history[0].get("file_size")
-        mod.filename = data.version_history[0].get("filename")
+    if current_entry:
+        mod.download_url = current_entry.get("download_url")
+        mod.file_size = current_entry.get("file_size")
+        mod.filename = current_entry.get("filename")
     db.commit()
 
 
