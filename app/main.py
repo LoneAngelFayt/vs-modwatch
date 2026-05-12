@@ -213,28 +213,76 @@ async def mod_history(mod_id: int, request: Request, db: DB):
 
 @app.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, db: DB):
-    return templates.TemplateResponse(request, "settings.html", {
+    ctx = {
         "discord_webhook_url": os.getenv("DISCORD_WEBHOOK_URL") or get_setting(db, "discord_webhook_url", ""),
         "apprise_url": os.getenv("APPRISE_URL") or get_setting(db, "apprise_url", ""),
         "scrape_interval_hours": os.getenv("SCRAPE_INTERVAL_HOURS") or get_setting(db, "scrape_interval_hours", "6"),
         "discord_from_env": bool(os.getenv("DISCORD_WEBHOOK_URL")),
         "apprise_from_env": bool(os.getenv("APPRISE_URL")),
         "interval_from_env": bool(os.getenv("SCRAPE_INTERVAL_HOURS")),
-    })
+        "allow_outdated_downloads": get_setting(db, "allow_outdated_downloads", "false").lower() == "true",
+        "notify_when": get_setting(db, "notify_when", "always"),
+    }
+    for key in DEFAULT_SETTINGS:
+        if key.startswith("discord_"):
+            ctx[key] = get_setting(db, key, DEFAULT_SETTINGS[key])
+    ctx["app_version"] = "1.0.0"
+    ctx["is_latest"] = True
+    ctx["latest_version"] = "1.0.0"
+    return templates.TemplateResponse(request, "settings.html", ctx)
 
 
 @app.post("/settings", response_class=HTMLResponse)
 async def save_settings(
     request: Request, db: DB,
+    scrape_interval_hours: str = Form("6"),
+    allow_outdated_downloads: str = Form("false"),
+    notify_when: str = Form("always"),
     discord_webhook_url: str = Form(""),
     apprise_url: str = Form(""),
-    scrape_interval_hours: str = Form("6"),
+    discord_embed_title: str = Form("{mod_name} updated to {new_version}"),
+    discord_embed_description: str = Form(""),
+    discord_embed_color: str = Form("#3498DB"),
+    discord_field_version_enabled: str = Form("false"),
+    discord_field_version_label: str = Form("Version"),
+    discord_field_version_value: str = Form("{new_version}"),
+    discord_field_vs_enabled: str = Form("false"),
+    discord_field_vs_label: str = Form("VS Compatibility"),
+    discord_field_vs_value: str = Form("{vs_version}"),
+    discord_field_side_enabled: str = Form("false"),
+    discord_field_side_label: str = Form("Side"),
+    discord_field_side_value: str = Form("{side}"),
+    discord_field_compat_enabled: str = Form("false"),
+    discord_field_compat_label: str = Form("Works on Latest"),
+    discord_field_compat_value: str = Form("{compatible_with_latest}"),
+    discord_custom_fields: str = Form("[]"),
 ):
+    if not os.getenv("SCRAPE_INTERVAL_HOURS"):
+        set_setting(db, "scrape_interval_hours", scrape_interval_hours)
+    set_setting(db, "allow_outdated_downloads", "true" if allow_outdated_downloads == "on" else "false")
+    set_setting(db, "notify_when", notify_when)
     if not os.getenv("DISCORD_WEBHOOK_URL"):
         set_setting(db, "discord_webhook_url", discord_webhook_url or None)
     if not os.getenv("APPRISE_URL"):
         set_setting(db, "apprise_url", apprise_url or None)
-    if not os.getenv("SCRAPE_INTERVAL_HOURS"):
-        set_setting(db, "scrape_interval_hours", scrape_interval_hours)
+    for key, val in [
+        ("discord_embed_title", discord_embed_title),
+        ("discord_embed_description", discord_embed_description),
+        ("discord_embed_color", discord_embed_color),
+        ("discord_field_version_enabled", "true" if discord_field_version_enabled == "on" else "false"),
+        ("discord_field_version_label", discord_field_version_label),
+        ("discord_field_version_value", discord_field_version_value),
+        ("discord_field_vs_enabled", "true" if discord_field_vs_enabled == "on" else "false"),
+        ("discord_field_vs_label", discord_field_vs_label),
+        ("discord_field_vs_value", discord_field_vs_value),
+        ("discord_field_side_enabled", "true" if discord_field_side_enabled == "on" else "false"),
+        ("discord_field_side_label", discord_field_side_label),
+        ("discord_field_side_value", discord_field_side_value),
+        ("discord_field_compat_enabled", "true" if discord_field_compat_enabled == "on" else "false"),
+        ("discord_field_compat_label", discord_field_compat_label),
+        ("discord_field_compat_value", discord_field_compat_value),
+        ("discord_custom_fields", discord_custom_fields),
+    ]:
+        set_setting(db, key, val)
     db.commit()
     return RedirectResponse("/settings", status_code=303)

@@ -1,36 +1,273 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 style="margin-top:0;">Settings</h2>
-<p style="color:#94a3b8; font-size:.875rem;">Environment variables take precedence and disable the corresponding field.</p>
-<form method="post" action="/settings" style="max-width:520px; display:grid; gap:1.25rem;">
-  <div>
-    <label style="display:block; margin-bottom:.3rem; font-size:.875rem; color:#94a3b8;">Discord Webhook URL</label>
-    <input type="url" name="discord_webhook_url" value="{{ discord_webhook_url or '' }}"
-           {% if discord_from_env %}disabled{% endif %}
-           placeholder="https://discord.com/api/webhooks/..."
-           style="width:100%; padding:.5rem; border-radius:4px; border:1px solid #2d3148; background:#1a1d27; color:#e2e8f0;">
-    {% if discord_from_env %}<small style="color:#94a3b8;">Set via DISCORD_WEBHOOK_URL env var.</small>{% endif %}
+<div style="max-width:860px;">
+
+  <!-- About section -->
+  <div style="border:1px solid #2d3148;border-radius:8px;padding:1rem 1.25rem;background:#13151f;display:flex;flex-direction:column;gap:.85rem;margin-bottom:2rem;">
+    <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+      <span style="font-size:1.1rem;font-weight:700;">ModWatch</span>
+      <span style="font-size:.75rem;font-family:monospace;background:#1a1d27;border:1px solid #2d3148;color:#94a3b8;padding:.15rem .5rem;border-radius:4px;">v{{ app_version }}</span>
+      {% if is_latest %}<span style="font-size:.78rem;color:#22c55e;">✓ You're running the latest version.</span>
+      {% else %}<span style="font-size:.78rem;color:#fbbf24;">⚠ Update available: {{ latest_version }}</span>{% endif %}
+    </div>
+    <div style="height:1px;background:#2d3148;"></div>
+    <div>
+      <div style="font-size:.85rem;font-weight:600;margin-bottom:.25rem;">Support ModWatch</div>
+      <div style="font-size:.78rem;color:#64748b;margin-bottom:.65rem;">If ModWatch is useful to you, consider starring the project on GitHub.</div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+        <a href="https://github.com/LoneAngelFayt/vs-modwatch" target="_blank" class="btn btn-ghost" style="font-size:.82rem;text-decoration:none;">⭐ GitHub</a>
+        <a href="https://github.com/LoneAngelFayt/vs-modwatch/issues" target="_blank" class="btn btn-ghost" style="font-size:.82rem;text-decoration:none;">🐛 Report an Issue</a>
+      </div>
+    </div>
   </div>
-  <div>
-    <label style="display:block; margin-bottom:.3rem; font-size:.875rem; color:#94a3b8;">Apprise URL</label>
-    <input type="text" name="apprise_url" value="{{ apprise_url or '' }}"
-           {% if apprise_from_env %}disabled{% endif %}
-           placeholder="ntfy://topic or slack://token/channel"
-           style="width:100%; padding:.5rem; border-radius:4px; border:1px solid #2d3148; background:#1a1d27; color:#e2e8f0;">
-    {% if apprise_from_env %}<small style="color:#94a3b8;">Set via APPRISE_URL env var.</small>{% endif %}
-    <small style="color:#64748b;">
-      Supports Ntfy, Gotify, Slack, email, and
-      <a href="https://github.com/caronc/apprise/wiki" target="_blank" style="color:#3b82f6;">80+ services</a>.
-    </small>
-  </div>
-  <div>
-    <label style="display:block; margin-bottom:.3rem; font-size:.875rem; color:#94a3b8;">Scrape Interval (hours)</label>
-    <input type="number" name="scrape_interval_hours" min="1" max="168"
-           value="{{ scrape_interval_hours or '6' }}"
-           {% if interval_from_env %}disabled{% endif %}
-           style="width:120px; padding:.5rem; border-radius:4px; border:1px solid #2d3148; background:#1a1d27; color:#e2e8f0;">
-    {% if interval_from_env %}<small style="color:#94a3b8;">Set via SCRAPE_INTERVAL_HOURS env var.</small>{% endif %}
-  </div>
-  <div><button type="submit" class="btn btn-primary">Save Settings</button></div>
-</form>
+
+  <div style="height:1px;background:#2d3148;margin-bottom:2rem;"></div>
+
+  <form method="post" action="/settings">
+
+    <!-- General -->
+    <h2 style="font-size:1.05rem;margin:0 0 .2rem;">General</h2>
+    <p style="font-size:.8rem;color:#64748b;margin:0 0 1rem;">Core scraping settings.</p>
+
+    <div style="margin-bottom:1rem;">
+      <label style="font-size:.8rem;color:#94a3b8;display:block;margin-bottom:.3rem;">Scrape Interval (hours)</label>
+      <input type="number" name="scrape_interval_hours" min="1" max="168"
+             value="{{ scrape_interval_hours }}" {% if interval_from_env %}disabled{% endif %}
+             style="width:120px;padding:.45rem .65rem;border-radius:6px;border:1px solid #2d3148;background:#1a1d27;color:#e2e8f0;font-size:.85rem;outline:none;">
+      <small style="color:#64748b;margin-left:.5rem;">Restart required to take effect.</small>
+    </div>
+
+    <div style="margin-bottom:1.5rem;">
+      <label style="display:flex;align-items:center;gap:.75rem;cursor:pointer;">
+        <input type="checkbox" name="allow_outdated_downloads"
+               {% if allow_outdated_downloads %}checked{% endif %}
+               style="width:16px;height:16px;accent-color:#3b82f6;">
+        <span style="font-size:.85rem;">Allow downloading outdated mods</span>
+      </label>
+      <small style="color:#64748b;display:block;margin-top:.3rem;">When off, outdated mods are not downloadable.</small>
+    </div>
+
+    <div style="height:1px;background:#2d3148;margin:1.5rem 0;"></div>
+
+    <!-- Notifications -->
+    <h2 style="font-size:1.05rem;margin:0 0 .2rem;">Notifications</h2>
+    <p style="font-size:.8rem;color:#64748b;margin:0 0 1rem;">When and where to send update alerts.</p>
+
+    <div style="margin-bottom:1rem;">
+      <label style="font-size:.8rem;color:#94a3b8;display:block;margin-bottom:.5rem;">Notify when</label>
+      <div style="display:flex;flex-direction:column;gap:.4rem;">
+        <label style="display:flex;align-items:flex-start;gap:.65rem;cursor:pointer;padding:.45rem .65rem;border-radius:6px;border:1px solid {% if notify_when == 'always' %}#3b82f6{% else %}#2d3148{% endif %};background:{% if notify_when == 'always' %}#1e2535{% else %}#13151f{% endif %};">
+          <input type="radio" name="notify_when" value="always" {% if notify_when == 'always' %}checked{% endif %} style="accent-color:#3b82f6;margin-top:.15rem;">
+          <div>
+            <div style="font-size:.85rem;font-weight:500;">Always — any new version</div>
+            <div style="font-size:.73rem;color:#64748b;">Send a notification whenever a tracked mod releases a new version.</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:.65rem;cursor:pointer;padding:.45rem .65rem;border-radius:6px;border:1px solid {% if notify_when == 'compatible_only' %}#3b82f6{% else %}#2d3148{% endif %};background:{% if notify_when == 'compatible_only' %}#1e2535{% else %}#13151f{% endif %};">
+          <input type="radio" name="notify_when" value="compatible_only" {% if notify_when == 'compatible_only' %}checked{% endif %} style="accent-color:#3b82f6;margin-top:.15rem;">
+          <div>
+            <div style="font-size:.85rem;font-weight:500;">Only when compatible with latest VS version</div>
+            <div style="font-size:.73rem;color:#64748b;">Suppress notifications for updates that don't support the current latest VS version.</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1rem;">
+      <label style="font-size:.8rem;color:#94a3b8;display:block;margin-bottom:.3rem;">Discord Webhook URL
+        {% if discord_from_env %}<span style="font-size:.68rem;background:#1e3a5f;color:#93c5fd;padding:.1rem .45rem;border-radius:3px;margin-left:.4rem;">env</span>{% endif %}
+      </label>
+      <div style="display:flex;gap:.5rem;">
+        <input type="url" name="discord_webhook_url" value="{{ discord_webhook_url or '' }}"
+               {% if discord_from_env %}disabled{% endif %}
+               placeholder="https://discord.com/api/webhooks/…"
+               style="flex:1;padding:.45rem .65rem;border-radius:6px;border:1px solid #2d3148;background:#1a1d27;color:#e2e8f0;font-size:.85rem;outline:none;">
+        <button type="button" class="btn btn-ghost"
+                hx-post="/settings/test-discord"
+                hx-on::after-request="document.getElementById('test-result').textContent = event.detail.successful ? '✓ Sent' : '✗ Failed'; document.getElementById('test-result').style.color = event.detail.successful ? '#86efac' : '#f87171';"
+                style="white-space:nowrap;">▶ Send Test</button>
+      </div>
+      <span id="test-result" style="font-size:.78rem;display:block;margin-top:.3rem;"></span>
+    </div>
+
+    <div style="margin-bottom:1.5rem;">
+      <label style="font-size:.8rem;color:#94a3b8;display:block;margin-bottom:.3rem;">Apprise URL
+        {% if apprise_from_env %}<span style="font-size:.68rem;background:#1e3a5f;color:#93c5fd;padding:.1rem .45rem;border-radius:3px;margin-left:.4rem;">env</span>{% endif %}
+      </label>
+      <input type="text" name="apprise_url" value="{{ apprise_url or '' }}"
+             {% if apprise_from_env %}disabled{% endif %}
+             placeholder="ntfy://topic  or  slack://token/channel"
+             style="width:100%;padding:.45rem .65rem;border-radius:6px;border:1px solid #2d3148;background:#1a1d27;color:#e2e8f0;font-size:.85rem;outline:none;">
+      <small style="color:#64748b;">Supports <a href="https://github.com/caronc/apprise/wiki" target="_blank" style="color:#3b82f6;">80+ services</a>.</small>
+    </div>
+
+    <div style="height:1px;background:#2d3148;margin:1.5rem 0;"></div>
+
+    <!-- Discord Embed Format -->
+    <h2 style="font-size:1.05rem;margin:0 0 .2rem;">Discord Embed Format</h2>
+    <p style="font-size:.8rem;color:#64748b;margin:0 0 .6rem;">Customise the embed sent when a mod update is detected.</p>
+    <p style="font-size:.72rem;color:#475569;margin:0 0 1rem;line-height:1.7;">
+      Variables:
+      {% for v in ['{mod_name}','{new_version}','{old_version}','{vs_version}','{side}','{mod_url}','{filename}','{file_size}','{latest_vs_version}','{compatible_with_latest}'] %}
+      <code style="background:#1a1d27;border:1px solid #2d3148;padding:.05rem .3rem;border-radius:3px;color:#93c5fd;font-size:.71rem;">{{ v }}</code>
+      {% endfor %}
+    </p>
+
+    <div style="margin-bottom:.85rem;">
+      <label style="font-size:.8rem;color:#94a3b8;display:block;margin-bottom:.3rem;">Embed Title</label>
+      <input type="text" name="discord_embed_title" value="{{ discord_embed_title }}"
+             style="width:100%;padding:.45rem .65rem;border-radius:6px;border:1px solid #2d3148;background:#1a1d27;color:#e2e8f0;font-size:.85rem;outline:none;" id="dp-title-input" oninput="updatePreview()">
+    </div>
+
+    <div style="margin-bottom:.85rem;">
+      <label style="font-size:.8rem;color:#94a3b8;display:block;margin-bottom:.3rem;">Description <span style="color:#475569;font-weight:400;">(optional)</span></label>
+      <textarea name="discord_embed_description" id="dp-desc-input" oninput="updatePreview()"
+                style="width:100%;padding:.45rem .65rem;border-radius:6px;border:1px solid #2d3148;background:#1a1d27;color:#e2e8f0;font-size:.85rem;outline:none;resize:vertical;min-height:60px;font-family:inherit;">{{ discord_embed_description }}</textarea>
+    </div>
+
+    <div style="margin-bottom:.85rem;">
+      <label style="font-size:.8rem;color:#94a3b8;display:block;margin-bottom:.3rem;">Embed Colour</label>
+      <div style="display:flex;align-items:center;gap:.6rem;">
+        <input type="color" id="dp-color-picker" value="{{ discord_embed_color }}"
+               style="width:40px;height:34px;padding:2px;border-radius:6px;border:1px solid #2d3148;background:#1a1d27;cursor:pointer;"
+               oninput="document.getElementById('dp-color-hex').value=this.value.toUpperCase();document.querySelector('[name=discord_embed_color]').value=this.value;updatePreview()">
+        <input type="text" id="dp-color-hex" value="{{ discord_embed_color }}" maxlength="7"
+               style="width:96px;padding:.45rem .65rem;border-radius:6px;border:1px solid #2d3148;background:#1a1d27;color:#e2e8f0;font-size:.85rem;outline:none;font-family:monospace;"
+               oninput="if(/^#[0-9a-fA-F]{6}$/.test(this.value)){document.getElementById('dp-color-picker').value=this.value;document.querySelector('[name=discord_embed_color]').value=this.value;updatePreview()}">
+        <input type="hidden" name="discord_embed_color" value="{{ discord_embed_color }}">
+      </div>
+    </div>
+
+    <div style="margin-bottom:.85rem;">
+      <label style="font-size:.8rem;color:#94a3b8;display:block;margin-bottom:.4rem;">Fields</label>
+      <div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:.3rem .6rem;padding:0 .5rem .3rem;margin-bottom:.1rem;">
+        <span></span>
+        <span style="font-size:.69rem;color:#475569;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Label</span>
+        <span style="font-size:.69rem;color:#475569;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Value</span>
+      </div>
+      {% set discord_field_rows = [
+        ('version', discord_field_version_enabled, discord_field_version_label, discord_field_version_value),
+        ('vs',      discord_field_vs_enabled,      discord_field_vs_label,      discord_field_vs_value),
+        ('side',    discord_field_side_enabled,     discord_field_side_label,    discord_field_side_value),
+        ('compat',  discord_field_compat_enabled,   discord_field_compat_label,  discord_field_compat_value),
+      ] %}
+      {% for key, enabled, label, value in discord_field_rows %}
+      <div style="display:grid;grid-template-columns:auto 1fr 1fr;align-items:center;gap:.3rem .6rem;padding:.4rem .5rem;border-radius:6px;background:#13151f;border:1px solid #2d3148;margin-bottom:.3rem;">
+        <input type="checkbox" name="discord_field_{{ key }}_enabled"
+               {% if enabled == 'true' %}checked{% endif %}
+               onchange="updatePreview()"
+               style="width:14px;height:14px;accent-color:#3b82f6;cursor:pointer;">
+        <input type="text" name="discord_field_{{ key }}_label"
+               value="{{ label }}"
+               oninput="updatePreview()"
+               style="padding:.28rem .45rem;border-radius:5px;border:1px solid #2d3148;background:#1a1d27;color:#e2e8f0;font-size:.8rem;outline:none;">
+        <input type="text" name="discord_field_{{ key }}_value"
+               value="{{ value }}"
+               oninput="updatePreview()"
+               style="padding:.28rem .45rem;border-radius:5px;border:1px solid #2d3148;background:#1a1d27;color:#e2e8f0;font-size:.8rem;outline:none;">
+      </div>
+      {% endfor %}
+
+      <div id="custom-fields-container"></div>
+      <input type="hidden" name="discord_custom_fields" id="custom-fields-input" value="{{ discord_custom_fields }}">
+      <button type="button" onclick="addCustomField()" class="btn btn-ghost" style="font-size:.78rem;padding:.28rem .65rem;margin-top:.35rem;">+ Add Field</button>
+    </div>
+
+    <!-- Live preview -->
+    <div style="margin-top:1.25rem;margin-bottom:1.5rem;">
+      <div style="font-size:.72rem;color:#475569;text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:.4rem;">Live Preview (example data)</div>
+      <div id="discord-preview" style="background:#313338;border-radius:8px;padding:1rem 1rem 1rem .85rem;border-left:4px solid {{ discord_embed_color }};max-width:440px;box-shadow:0 2px 10px #00000040;">
+        <div id="dp-preview-title" style="font-size:.95rem;font-weight:600;color:#00b0f4;margin-bottom:.2rem;">{{ discord_embed_title }}</div>
+        <div id="dp-preview-desc" style="font-size:.85rem;color:#dbdee1;margin-bottom:.4rem;{% if not discord_embed_description %}display:none;{% endif %}">{{ discord_embed_description }}</div>
+        <div id="dp-preview-fields" style="display:flex;flex-wrap:wrap;gap:.5rem;"></div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1.5rem;">
+      <a href="/settings/reset-discord-defaults" class="btn btn-ghost" style="font-size:.78rem;color:#f87171;border-color:#3b1f1f;text-decoration:none;">↺ Reset embed to defaults</a>
+    </div>
+
+    <div style="display:flex;gap:.6rem;">
+      <button type="submit" class="btn btn-primary">Save Settings</button>
+      <a href="/" class="btn btn-ghost" style="text-decoration:none;">Cancel</a>
+    </div>
+
+  </form>
+</div>
+
+<script>
+const DEMO = {
+  mod_name:'Purposeful Storage', new_version:'v1.3.2', old_version:'v1.3.1',
+  vs_version:'>=1.19', side:'Client and Server',
+  mod_url:'https://mods.vintagestory.at/purposefulstorage',
+  filename:'purposefulstorage_v1.3.2.zip', file_size:'1.8 MB',
+  latest_vs_version:'1.21.6', compatible_with_latest:'Yes',
+};
+
+function subVars(t) {
+  return t.replace(/\{(\w+)\}/g, (_, k) => DEMO[k] ?? `{${k}}`);
+}
+
+function updatePreview() {
+  const title = subVars(document.getElementById('dp-title-input')?.value || '');
+  const desc  = subVars(document.getElementById('dp-desc-input')?.value?.trim() || '');
+  const color = document.querySelector('[name=discord_embed_color]')?.value || '#3498DB';
+  document.getElementById('dp-preview-title').textContent = title || '(no title)';
+  document.getElementById('discord-preview').style.borderLeftColor = color;
+  const descEl = document.getElementById('dp-preview-desc');
+  if (desc) { descEl.textContent = desc; descEl.style.display = ''; }
+  else { descEl.style.display = 'none'; }
+  const fields = [];
+  [['version'],['vs'],['side'],['compat']].forEach(([key]) => {
+    const cb = document.querySelector(`[name=discord_field_${key}_enabled]`);
+    if (!cb?.checked) return;
+    const label = subVars(document.querySelector(`[name=discord_field_${key}_label]`)?.value || '');
+    const value = subVars(document.querySelector(`[name=discord_field_${key}_value]`)?.value || '');
+    fields.push(`<div style="min-width:120px;"><div style="font-size:.75rem;font-weight:700;color:#dbdee1;margin-bottom:.1rem;">${label}</div><div style="font-size:.8rem;color:#dbdee1;">${value}</div></div>`);
+  });
+  document.querySelectorAll('#custom-fields-container > div').forEach(row => {
+    const inputs = row.querySelectorAll('input[type=text]');
+    const enabled = row.querySelector('input[type=checkbox]')?.checked;
+    if (!enabled) return;
+    const label = subVars(inputs[0]?.value || '');
+    const value = subVars(inputs[1]?.value || '');
+    if (label || value) fields.push(`<div style="min-width:120px;"><div style="font-size:.75rem;font-weight:700;color:#dbdee1;margin-bottom:.1rem;">${label}</div><div style="font-size:.8rem;color:#dbdee1;">${value}</div></div>`);
+  });
+  document.getElementById('dp-preview-fields').innerHTML = fields.join('');
+}
+
+function loadCustomFields() {
+  let fields = [];
+  try { fields = JSON.parse(document.getElementById('custom-fields-input').value || '[]'); } catch(e) {}
+  fields.forEach(f => renderCustomField(f.label||'', f.value||'', f.enabled!==false));
+}
+
+function renderCustomField(label, value, enabled) {
+  const container = document.getElementById('custom-fields-container');
+  const row = document.createElement('div');
+  row.style.cssText = 'display:grid;grid-template-columns:auto 1fr 1fr auto;align-items:center;gap:.3rem .6rem;padding:.4rem .5rem;border-radius:6px;background:#13151f;border:1px solid #2d3148;margin-bottom:.3rem;';
+  row.innerHTML = `
+    <input type="checkbox" ${enabled?'checked':''} onchange="saveCustomFields()" style="width:14px;height:14px;accent-color:#3b82f6;">
+    <input type="text" value="${label}" placeholder="Label" oninput="saveCustomFields()" style="padding:.28rem .45rem;border-radius:5px;border:1px solid #2d3148;background:#1a1d27;color:#e2e8f0;font-size:.8rem;outline:none;">
+    <input type="text" value="${value}" placeholder="Value" oninput="saveCustomFields()" style="padding:.28rem .45rem;border-radius:5px;border:1px solid #2d3148;background:#1a1d27;color:#e2e8f0;font-size:.8rem;outline:none;">
+    <button type="button" onclick="this.parentElement.remove();saveCustomFields();" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:1rem;padding:0 .2rem;">✕</button>
+  `;
+  container.appendChild(row);
+}
+
+function addCustomField() { renderCustomField('','',true); saveCustomFields(); }
+
+function saveCustomFields() {
+  const rows = document.querySelectorAll('#custom-fields-container > div');
+  const fields = [...rows].map(row => {
+    const inputs = row.querySelectorAll('input');
+    return { enabled: inputs[0].checked, label: inputs[1].value, value: inputs[2].value };
+  });
+  document.getElementById('custom-fields-input').value = JSON.stringify(fields);
+  updatePreview();
+}
+
+loadCustomFields();
+updatePreview();
+</script>
 {% endblock %}
