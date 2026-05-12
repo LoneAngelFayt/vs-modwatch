@@ -14,7 +14,6 @@ async def _update_mod(db, mod, data, discord_url, apprise_url, discord_settings,
     """Update a single mod from scraped data. Handles initial seed and version changes."""
 
     now = datetime.now(timezone.utc)
-    existing_versions = {v.version for v in db.query(ModVersion).filter_by(mod_id=mod.id).all()}
 
     # Only notify on a version change if there was already a tracked version.
     # mod.current_version is None on first scrape — don't fire a notification then.
@@ -24,9 +23,14 @@ async def _update_mod(db, mod, data, discord_url, apprise_url, discord_settings,
         and data.current_version != mod.current_version
     )
 
-    # Seed all history entries not yet stored (including download info)
+    # Seed all history entries not yet stored; update is_tester on existing rows
+    # that were seeded before the is_tester field existed.
+    existing_rows = {v.version: v for v in db.query(ModVersion).filter_by(mod_id=mod.id).all()}
+    existing_versions = set(existing_rows.keys())
     for entry in data.version_history:
-        if entry["version"] and entry["version"] not in existing_versions:
+        if not entry["version"]:
+            continue
+        if entry["version"] not in existing_versions:
             db.add(ModVersion(
                 mod_id=mod.id,
                 version=entry["version"],
@@ -38,6 +42,9 @@ async def _update_mod(db, mod, data, discord_url, apprise_url, discord_settings,
                 filename=entry.get("filename"),
             ))
             existing_versions.add(entry["version"])
+        elif entry.get("is_tester") and not existing_rows[entry["version"]].is_tester:
+            # Backfill is_tester on rows seeded before this field was added
+            existing_rows[entry["version"]].is_tester = True
 
     compatible_with_latest = bool(
         data.vs_version and latest_vs_version and
