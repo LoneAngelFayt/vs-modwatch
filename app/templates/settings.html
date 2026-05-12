@@ -185,9 +185,11 @@
     </div>
 
     <div style="margin-bottom:1.5rem;">
-      <form method="post" action="/settings/reset-discord-defaults" style="display:inline;">
-        <button type="submit" class="btn btn-ghost" style="font-size:.78rem;color:#f87171;border-color:#3b1f1f;">↺ Reset embed to defaults</button>
-      </form>
+      <button type="button" class="btn btn-ghost"
+              hx-post="/settings/reset-discord-defaults"
+              hx-confirm="Reset Discord embed format to defaults?"
+              hx-on::after-request="if(event.detail.successful) window.location.reload()"
+              style="font-size:.78rem;color:#f87171;border-color:#3b1f1f;">↺ Reset embed to defaults</button>
     </div>
 
     <div style="display:flex;gap:.6rem;align-items:center;">
