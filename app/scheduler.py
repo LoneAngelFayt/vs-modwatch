@@ -2,8 +2,9 @@ import os
 import logging
 from datetime import datetime, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from app.db import DEFAULT_SETTINGS, ModVersion
+from app.db import DEFAULT_SETTINGS, Mod, ModVersion, VSVersion, get_setting
 from app.notifier import notify
+from app.scraper import fetch_mod_page, fetch_vs_versions
 from app.versions import compat_level
 
 logger = logging.getLogger(__name__)
@@ -69,9 +70,6 @@ async def _update_mod(db, mod, data, discord_url, apprise_url, discord_settings,
 
 
 async def run_scrape_one(session_factory, mod_id: int) -> None:
-    from app.db import Mod, VSVersion, get_setting, DEFAULT_SETTINGS
-    from app.scraper import fetch_mod_page
-
     db = session_factory()
     try:
         discord_url = os.getenv("DISCORD_WEBHOOK_URL") or get_setting(db, "discord_webhook_url")
@@ -106,9 +104,6 @@ async def run_scrape_one(session_factory, mod_id: int) -> None:
 
 
 async def run_scrape_all(session_factory) -> None:
-    from app.db import Mod, VSVersion, get_setting
-    from app.scraper import fetch_mod_page, fetch_vs_versions
-
     db = session_factory()
     try:
         try:
