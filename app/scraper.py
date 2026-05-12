@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
-from app.versions import parse_vs_versions
+from app.versions import parse_vs_versions, is_dev_version
 
 
 @dataclass
@@ -14,7 +14,7 @@ class ModPageData:
     vs_version: str
     side: str  # "client", "server", "both"
     last_updated: Optional[datetime]
-    version_history: list[dict]  # [{"version": str, "vs_version": str, "released_at": datetime|None, "download_url": str|None, "filename": str|None, "file_size": int|None}]
+    version_history: list[dict]  # [{"version": str, "vs_version": str, "released_at": datetime|None, "download_url": str|None, "filename": str|None, "file_size": int|None, "is_tester": bool}]
 
 
 def _parse_side(raw: str) -> str:
@@ -92,6 +92,21 @@ def parse_mod_page(html: str) -> ModPageData:
                     side = _parse_side(next_dt.get_text(strip=True))
                 break
 
+    # Collect asset IDs marked as "For testers" in the infobox download section.
+    # The infobox uses <strong>For testers …:</strong> labels above download links.
+    # Each download link href contains the asset ID: /download/<asset_id>/...
+    tester_asset_ids: set[str] = set()
+    for strong in soup.find_all("strong"):
+        if "for testers" in strong.get_text(strip=True).lower():
+            # Collect all download hrefs in the same parent element
+            parent = strong.parent
+            if parent:
+                for a in parent.find_all("a", href=True):
+                    href = a["href"]
+                    m = re.match(r"/download/(\d+)/", href)
+                    if m:
+                        tester_asset_ids.add(m.group(1))
+
     # Release rows: table.release-table tbody tr[data-assetid]
     release_rows = soup.select("table.release-table tbody tr[data-assetid]")
     version_history = []
@@ -123,6 +138,11 @@ def parse_mod_page(html: str) -> ModPageData:
             if file_size_el:
                 file_size = _parse_file_size(file_size_el.get_text(strip=True))
 
+        # A release is a tester build if: the portal's infobox labels it "For testers"
+        # (matched by asset ID) OR the version string contains a dev/pre-release marker.
+        asset_id = row.get("data-assetid", "")
+        is_tester = (asset_id in tester_asset_ids) or is_dev_version(version)
+
         version_history.append({
             "version": version,
             "vs_version": vs_version,
@@ -130,6 +150,7 @@ def parse_mod_page(html: str) -> ModPageData:
             "download_url": download_url,
             "filename": filename,
             "file_size": file_size,
+            "is_tester": is_tester,
         })
 
     current = version_history[0] if version_history else {}

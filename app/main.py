@@ -85,12 +85,16 @@ DB = Annotated[Session, Depends(get_db)]
 
 
 def _best_dev_release(mod_id: int, target: str, db: Session) -> ModVersion | None:
-    """Return the most recent dev/testing release compatible with target, or None."""
+    """Return the most recent tester/dev release compatible with target, or None.
+
+    Uses the stored is_tester flag (set by the scraper from the portal's 'For testers'
+    label) first, then falls back to version-string detection.
+    """
     if not target:
         return None
     history = db.query(ModVersion).filter_by(mod_id=mod_id).order_by(ModVersion.detected_at.desc()).all()
     for v in history:
-        if not is_dev_version(v.version):
+        if not (v.is_tester or is_dev_version(v.version)):
             continue
         if v.vs_version and compat_level(v.vs_version, target) in ("compatible", "warn"):
             return v

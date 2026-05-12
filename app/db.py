@@ -46,6 +46,7 @@ class ModVersion(Base):
     download_url: Mapped[str | None] = mapped_column(String, nullable=True)
     file_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
     filename: Mapped[str | None] = mapped_column(String, nullable=True)
+    is_tester: Mapped[bool] = mapped_column(Boolean, default=False)
     mod: Mapped["Mod"] = relationship("Mod", back_populates="versions")
 
 
@@ -119,6 +120,7 @@ def upgrade_db() -> None:
             "download_url": "TEXT",
             "file_size": "INTEGER",
             "filename": "TEXT",
+            "is_tester": "BOOLEAN DEFAULT 0",
         }
         for col, typedef in new_mv_cols.items():
             if col not in existing_mv:

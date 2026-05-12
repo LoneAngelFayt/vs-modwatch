@@ -34,6 +34,7 @@ async def _update_mod(db, mod, data, discord_url, apprise_url, discord_settings,
                 released_at=entry.get("released_at"),
                 download_url=entry.get("download_url"),
                 file_size=entry.get("file_size"),
+                is_tester=entry.get("is_tester", False),
                 filename=entry.get("filename"),
             ))
             existing_versions.add(entry["version"])
