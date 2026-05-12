@@ -20,9 +20,15 @@ from app.notifier import build_discord_payload, send_discord
 
 import json as _json
 
-# Route all uvicorn and app logs to stdout so Docker captures them correctly
+# Route all logs to stdout so Docker captures them correctly
 _stdout_handler = logging.StreamHandler(sys.stdout)
 _stdout_handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s - %(message)s"))
+
+# Root logger — catches app.scheduler, app.scraper, app.notifier, etc.
+logging.root.setLevel(logging.INFO)
+logging.root.handlers = [_stdout_handler]
+
+# Uvicorn loggers use the same handler but don't propagate to root (avoids double-logging)
 for _name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
     _log = logging.getLogger(_name)
     _log.handlers = [_stdout_handler]
