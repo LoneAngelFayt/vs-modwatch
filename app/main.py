@@ -103,11 +103,6 @@ async def dashboard(request: Request, db: DB, target: str = "", view: str = "lis
     mod_data = [{"mod": mod, "compat": _compat_state(mod, target, db)} for mod in mods]
     allow_outdated_dl = get_setting(db, "allow_outdated_downloads", "false").lower() == "true"
 
-    if request.headers.get("HX-Request"):
-        return templates.TemplateResponse("mod_cards_partial.html", {
-            "request": request, "mod_data": mod_data, "target": target,
-            "allow_outdated_dl": allow_outdated_dl,
-        })
     return templates.TemplateResponse("dashboard.html", {
         "request": request, "mod_data": mod_data,
         "vs_versions": vs_versions, "target": target,
