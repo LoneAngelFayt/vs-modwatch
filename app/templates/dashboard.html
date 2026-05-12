@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
+{% if error == 'invalid_url' %}
+<div style="background:#3b1f1f;border:1px solid #7f1d1d;border-radius:6px;padding:.5rem 1rem;margin-bottom:1rem;font-size:.85rem;color:#f87171;">
+  URL must be from mods.vintagestory.at
+</div>
+{% endif %}
 <div style="display:flex;gap:1rem;align-items:flex-end;margin-bottom:1.25rem;flex-wrap:wrap;">
   <form method="post" action="/mods"
         hx-post="/mods" hx-target="#mod-grid" hx-swap="afterbegin"

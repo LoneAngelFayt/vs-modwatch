@@ -77,7 +77,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
 @app.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request, db: DB, target: str = "", view: str = "list"):
+async def dashboard(request: Request, db: DB, target: str = "", view: str = "list", error: str = ""):
     vs_versions_raw = db.query(VSVersion).all()
     vs_versions = sorted(vs_versions_raw, key=lambda v: PkgVersion(v.version), reverse=True)
     if not target:
@@ -102,6 +102,7 @@ async def dashboard(request: Request, db: DB, target: str = "", view: str = "lis
         "request": request, "mod_data": mod_data,
         "vs_versions": vs_versions, "target": target,
         "view": view, "allow_outdated_dl": allow_outdated_dl,
+        "error": error,
     })
 
 
