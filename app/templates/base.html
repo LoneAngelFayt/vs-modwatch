@@ -27,6 +27,13 @@
     .btn-primary { background: #3b82f6; color: #fff; }
     .btn-danger { background: #ef4444; color: #fff; }
     .btn-ghost { background: transparent; color: #94a3b8; border: 1px solid #2d3148; }
+    /* Spinner */
+    .htmx-indicator { display: none; }
+    .htmx-request .htmx-indicator { display: inline-flex; align-items: center; gap: .4rem; }
+    .htmx-request .track-label { display: none; }
+    .htmx-request.track-btn { opacity: .75; cursor: not-allowed; pointer-events: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
     .badge-installed   { background: #1e3a5f; color: #93c5fd; }
     .badge-warn        { background: #3b2f0f; color: #fbbf24; }
     .badge-stale       { background: #3b1f1f; color: #f87171; }
