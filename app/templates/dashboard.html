@@ -7,7 +7,7 @@
 {% endif %}
 <div style="display:flex;gap:1rem;align-items:flex-end;margin-bottom:1.25rem;flex-wrap:wrap;">
   <form method="post" action="/mods"
-        hx-post="/mods" hx-target="#mod-grid" hx-swap="afterbegin"
+        hx-post="/mods"
         style="display:flex;gap:.5rem;flex:1;min-width:300px;">
     <input type="url" name="url" placeholder="https://mods.vintagestory.at/modname"
            style="flex:1;padding:.5rem;border-radius:4px;border:1px solid #2d3148;background:#1a1d27;color:#e2e8f0;" required>
@@ -15,8 +15,7 @@
   </form>
   <div style="display:flex;gap:.5rem;align-items:center;">
     <label style="color:#94a3b8;font-size:.875rem;">Target VS:</label>
-    <select name="target"
-            hx-get="/?view={{ view }}" hx-target="main" hx-swap="innerHTML" hx-trigger="change"
+    <select onchange="window.location='/?view={{ view }}&target='+this.value"
             style="padding:.4rem;border-radius:4px;border:1px solid #2d3148;background:#1a1d27;color:#e2e8f0;">
       {% for v in vs_versions %}
         <option value="{{ v.version }}" {% if v.version == target %}selected{% endif %}>
@@ -26,17 +25,19 @@
     </select>
   </div>
   <div style="display:flex;border:1px solid #2d3148;border-radius:6px;overflow:hidden;margin-left:auto;">
-    <button class="btn {% if view == 'list' %}btn-primary{% else %}btn-ghost{% endif %}" style="border-radius:0;"
-            hx-get="/?view=list&target={{ target }}" hx-target="main" hx-swap="innerHTML">≡ List</button>
-    <button class="btn {% if view == 'cards' %}btn-primary{% else %}btn-ghost{% endif %}" style="border-radius:0;"
-            hx-get="/?view=cards&target={{ target }}" hx-target="main" hx-swap="innerHTML">⊞ Cards</button>
+    <a href="/?view=list&target={{ target }}"
+       class="btn {% if view == 'list' %}btn-primary{% else %}btn-ghost{% endif %}"
+       style="border-radius:0;text-decoration:none;">≡ List</a>
+    <a href="/?view=cards&target={{ target }}"
+       class="btn {% if view == 'cards' %}btn-primary{% else %}btn-ghost{% endif %}"
+       style="border-radius:0;text-decoration:none;">⊞ Cards</a>
   </div>
 </div>
 
 {% if view == 'list' %}
   {% include "list_view.html" %}
 {% else %}
-  <div id="mod-grid" style="display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));">
+  <div id="mod-grid" style="display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(340px,420px));">
     {% include "mod_cards_partial.html" %}
   </div>
 {% endif %}

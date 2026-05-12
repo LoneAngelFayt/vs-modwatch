@@ -103,11 +103,6 @@ async def dashboard(request: Request, db: DB, target: str = "", view: str = "lis
     mod_data = [{"mod": mod, "compat": _compat_state(mod, target, db)} for mod in mods]
     allow_outdated_dl = get_setting(db, "allow_outdated_downloads", "false").lower() == "true"
 
-    if request.headers.get("HX-Request"):
-        return templates.TemplateResponse("mod_cards_partial.html", {
-            "request": request, "mod_data": mod_data, "target": target,
-            "allow_outdated_dl": allow_outdated_dl,
-        })
     return templates.TemplateResponse("dashboard.html", {
         "request": request, "mod_data": mod_data,
         "vs_versions": vs_versions, "target": target,
@@ -134,9 +129,10 @@ async def add_mod(request: Request, db: DB, url: str = Form(...)):
     asyncio.create_task(run_scrape_all(SessionLocal))
     if not is_htmx:
         return RedirectResponse("/", status_code=303)
-    return templates.TemplateResponse(request, "mod_card.html", {
-        "item": {"mod": mod, "compat": {"state": "unknown", "note": ""}},
-    })
+    # Use HX-Redirect so HTMX reloads the full page — works for both list and card view
+    response = HTMLResponse("")
+    response.headers["HX-Redirect"] = "/"
+    return response
 
 
 @app.delete("/mods/{mod_id}", response_class=HTMLResponse)
