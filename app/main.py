@@ -245,8 +245,9 @@ async def download_mod(mod_id: int, db: DB, target: str = ""):
 
 
 @app.post("/settings/test-discord")
-async def test_discord(db: DB):
-    discord_url = os.getenv("DISCORD_WEBHOOK_URL") or get_setting(db, "discord_webhook_url")
+async def test_discord(db: DB, discord_webhook_url: str = Form("")):
+    # Prefer the value typed in the field (not yet saved) over the stored/env value
+    discord_url = discord_webhook_url.strip() or os.getenv("DISCORD_WEBHOOK_URL") or get_setting(db, "discord_webhook_url")
     if not discord_url:
         raise HTTPException(status_code=400, detail="No Discord webhook URL configured")
     discord_settings = {k: get_setting(db, k, DEFAULT_SETTINGS[k]) for k in DEFAULT_SETTINGS if k.startswith("discord_")}

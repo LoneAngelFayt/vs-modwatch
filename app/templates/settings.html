@@ -84,6 +84,7 @@
                style="flex:1;padding:.45rem .65rem;border-radius:6px;border:1px solid #2d3148;background:#1a1d27;color:#e2e8f0;font-size:.85rem;outline:none;">
         <button type="button" class="btn btn-ghost"
                 hx-post="/settings/test-discord"
+                hx-include="[name='discord_webhook_url']"
                 hx-on::after-request="document.getElementById('test-result').textContent = event.detail.successful ? '✓ Sent' : '✗ Failed'; document.getElementById('test-result').style.color = event.detail.successful ? '#86efac' : '#f87171';"
                 style="white-space:nowrap;">▶ Send Test</button>
       </div>
