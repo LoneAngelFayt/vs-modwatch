@@ -1,43 +1,65 @@
 {% set mod = item.mod %}
 {% set compat = item.compat %}
+{% set state = compat.state %}
 <div id="mod-{{ mod.id }}"
-     style="background:#1a1d27; border:1px solid #2d3148; border-radius:8px; padding:1rem; position:relative;">
+     style="background:#1a1d27;border:1px solid #2d3148;border-left:4px solid {% if state == 'installed' %}#3b82f6{% elif state == 'compatible' %}#22c55e{% elif state == 'warn' %}#f59e0b{% else %}#ef4444{% endif %};border-radius:8px;padding:1rem;position:relative;display:flex;flex-direction:column;gap:.55rem;"
+     data-id="{{ mod.id }}">
+  <span style="position:absolute;top:.55rem;left:.4rem;color:#2d3148;cursor:grab;font-size:1rem;line-height:1;padding:.1rem .15rem;" class="card-handle">⠿</span>
   {% if mod.has_unread_update %}
-    <span class="badge badge-compatible" style="position:absolute;top:.75rem;right:.75rem;">NEW</span>
+    <span class="badge badge-compatible" style="position:absolute;top:.55rem;right:.55rem;">NEW</span>
   {% endif %}
-  <div style="margin-bottom:.5rem;">
-    <a href="{{ mod.url }}" target="_blank"
-       style="font-weight:600; color:#e2e8f0; text-decoration:none; font-size:1rem;">
-      {{ mod.name or mod.url }}
-    </a>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;padding-left:1.2rem;">
+    <a href="{{ mod.url }}" target="_blank" style="font-weight:600;font-size:.94rem;color:#e2e8f0;text-decoration:none;">{{ mod.name or mod.url }}</a>
+    <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer;font-size:.8rem;color:#94a3b8;white-space:nowrap;">
+      <input type="checkbox" {% if mod.on_server %}checked{% endif %}
+             style="width:15px;height:15px;accent-color:#3b82f6;cursor:pointer;"
+             hx-post="/mods/{{ mod.id }}/toggle-server{% if target %}?target={{ target }}{% endif %}"
+             hx-target="#mod-{{ mod.id }}" hx-swap="outerHTML"> On Server
+    </label>
   </div>
-  <div style="display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.75rem;">
-    {% if mod.side %}<span class="badge badge-{{ mod.side }}">{{ mod.side }}</span>{% endif %}
-    <span class="badge badge-{{ compat.state }}">
-      {{ compat.state }}{% if compat.note %}: {{ compat.note }}{% endif %}
-    </span>
+  <div style="display:flex;gap:.3rem;flex-wrap:wrap;">
+    {% if mod.side == 'client' %}<span class="badge badge-client">💻 Client Only</span>
+    {% elif mod.side == 'server' %}<span class="badge badge-server">⚙ Server Only</span>
+    {% elif mod.side == 'both' %}<span class="badge badge-both">🖥 Client + Server</span>{% endif %}
+    {% if state in ('installed', 'compatible') %}<span class="badge badge-compatible">✓ Compatible</span>
+    {% elif state == 'warn' %}<span class="badge badge-warn">⚠ Potentially Outdated{% if compat.note %}: {{ compat.note }}{% endif %}</span>
+    {% elif state == 'stale' %}<span class="badge badge-stale">✕ Outdated{% if compat.note %}: {{ compat.note }}{% endif %}</span>
+    {% endif %}
   </div>
-  <div style="font-size:.8rem; color:#94a3b8; display:grid; gap:.2rem;">
-    <span>Version: <strong style="color:#e2e8f0;">{{ mod.current_version or "—" }}</strong></span>
-    <span>VS: <strong style="color:#e2e8f0;">{{ mod.vs_version or "—" }}</strong></span>
-    <span>Updated: {{ mod.last_updated.strftime("%Y-%m-%d") if mod.last_updated else "—" }}</span>
-    <span>Checked: {{ mod.last_checked.strftime("%Y-%m-%d %H:%M") if mod.last_checked else "never" }}</span>
+  <div style="font-size:.77rem;color:#64748b;display:grid;grid-template-columns:1fr 1fr;gap:.2rem .75rem;">
+    <span><strong style="color:#94a3b8;">Version</strong> {{ mod.current_version or "—" }}</span>
+    <span><strong style="color:#94a3b8;">VS</strong> {{ mod.vs_version or "—" }}</span>
+    <span><strong style="color:#94a3b8;">Updated</strong> {{ mod.last_updated.strftime("%Y-%m-%d") if mod.last_updated else "—" }}</span>
+    <span><strong style="color:#94a3b8;">Checked</strong> {{ mod.last_checked.strftime("%Y-%m-%d") if mod.last_checked else "never" }}</span>
   </div>
-  <div style="display:flex; gap:.5rem; margin-top:.75rem;">
+  <div style="display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;">
     <button class="btn btn-ghost"
             hx-get="/mods/{{ mod.id }}/history"
-            hx-target="#history-{{ mod.id }}"
+            hx-target="#hist-{{ mod.id }}"
             hx-swap="innerHTML toggle">History</button>
     <button class="btn btn-ghost"
             hx-post="/mods/{{ mod.id }}/refresh"
-            hx-target="#refresh-{{ mod.id }}"
-            hx-swap="innerHTML">Refresh</button>
+            hx-target="#mod-{{ mod.id }}"
+            hx-swap="outerHTML">Refresh</button>
+    {% set dl_enabled = state in ('installed', 'compatible', 'warn') or (state == 'stale' and allow_outdated_dl) %}
+    <div class="dl-wrap">
+      {% if dl_enabled and mod.download_url %}
+      <a href="/mods/{{ mod.id }}/download{% if target %}?target={{ target }}{% endif %}">
+        <button class="btn btn-download">⬇ Download</button>
+      </a>
+      {% else %}
+      <button class="btn btn-download" disabled>⬇ Download</button>
+      {% endif %}
+      <div class="dl-tip">
+        <span class="dl-fn">{{ mod.current_version or "—" }}</span>
+        <span class="dl-meta">{% if not dl_enabled %}Enable "Allow downloading outdated mods" in Settings{% elif not mod.download_url %}No file available{% elif state in ('warn', 'stale') %}May not work on VS {{ target }}{% else %}Compatible with VS {{ target }}{% endif %}</span>
+      </div>
+    </div>
     <button class="btn btn-danger"
             hx-delete="/mods/{{ mod.id }}"
             hx-target="#mod-{{ mod.id }}"
             hx-swap="outerHTML"
             hx-confirm="Remove {{ mod.name or 'this mod' }} from tracking?">Remove</button>
   </div>
-  <span id="refresh-{{ mod.id }}"></span>
-  <div id="history-{{ mod.id }}" style="margin-top:.5rem;"></div>
+  <div id="hist-{{ mod.id }}" style="margin-top:.25rem;"></div>
 </div>

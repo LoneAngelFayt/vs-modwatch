@@ -2,5 +2,20 @@
   {% include "mod_card.html" %}
 {% endfor %}
 {% if not mod_data %}
-  <p style="color:#94a3b8; grid-column:1/-1;">No mods tracked yet. Paste a mod URL above to get started.</p>
+  <p style="color:#94a3b8;grid-column:1/-1;">No mods tracked yet. Paste a mod URL above to get started.</p>
 {% endif %}
+<script>
+  (function() {
+    const grid = document.getElementById('mod-grid');
+    if (grid && typeof Sortable !== 'undefined') {
+      Sortable.create(grid, {
+        handle: '.card-handle', animation: 150,
+        ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen',
+        onEnd() {
+          const ids = [...grid.querySelectorAll('[data-id]')].map(el => parseInt(el.dataset.id));
+          fetch('/mods/order', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ids})});
+        }
+      });
+    }
+  })();
+</script>
